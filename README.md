@@ -43,6 +43,12 @@ pip install -r requirements.txt
 
 ## 三、启动
 
+**方式一：一键启动（Windows，推荐）**
+
+双击项目根目录的 `start.bat`，自动启动后端并打开浏览器。
+
+**方式二：命令行**
+
 ```bash
 cd backend
 python app.py
