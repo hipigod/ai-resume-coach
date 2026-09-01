@@ -8,6 +8,7 @@
 依赖 DeepSeek API（deepseek-chat），通过环境变量 DEEPSEEK_API_KEY 配置。
 """
 
+import asyncio
 import io
 import json
 import os
@@ -21,6 +22,7 @@ import requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from prompts import (
@@ -172,6 +174,52 @@ async def assess(file: UploadFile = File(...), jd: str = Form("")):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"评估失败：{str(e)}")
     return {"resume_name": file.filename, "result": result}
+
+
+def _sse(data: dict) -> str:
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@app.post("/api/assess-stream")
+async def assess_stream(file: UploadFile = File(...), jd: str = Form("")):
+    """第一步：SSE 流式评估——每跑完一步立即推送，前端逐步展示。"""
+    data = await file.read()
+    resume_text = extract_text(file.filename, data)
+
+    async def event_stream():
+        try:
+            s1 = await asyncio.to_thread(
+                lambda: parse_json(call_deepseek(STEP1_SYSTEM, assess_user(resume_text, jd)))
+            )
+            yield _sse({"step": "step1", "result": s1})
+
+            s2_user = assess_user(resume_text, jd) + f"\n\n<step1_result>{json.dumps(s1, ensure_ascii=False)}</step1_result>"
+            s2 = await asyncio.to_thread(
+                lambda: parse_json(call_deepseek(STEP2_SYSTEM, s2_user))
+            )
+            yield _sse({"step": "step2", "result": s2})
+
+            s3_user = assess_user(resume_text, jd) + f"\n\n<step2_result>{json.dumps(s2, ensure_ascii=False)}</step2_result>"
+            s3 = await asyncio.to_thread(
+                lambda: parse_json(call_deepseek(STEP3_SYSTEM, s3_user))
+            )
+            yield _sse({"step": "step3", "result": s3})
+
+            prev = {"step1": s1, "step2": s2, "step3": s3}
+            s5_user = assess_user(resume_text, jd) + f"\n\n<previous_results>{json.dumps(prev, ensure_ascii=False)}</previous_results>"
+            s5 = await asyncio.to_thread(
+                lambda: parse_json(call_deepseek(STEP5_SYSTEM, s5_user))
+            )
+            yield _sse({"step": "step5", "result": s5})
+
+            full = {"step1": s1, "step2": s2, "step3": s3, "step5": s5}
+            yield _sse({"done": True, "result": full})
+        except HTTPException:
+            yield _sse({"error": "评估失败"})
+        except Exception as e:  # noqa: BLE001
+            yield _sse({"error": str(e)})
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @app.post("/api/score")

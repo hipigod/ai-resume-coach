@@ -100,6 +100,21 @@
   .p-step .p-name { font-weight: 600; }
   .p-step .p-desc { font-size: 12px; color: var(--text3); }
 
+  /* 分步实时展示 */
+  .assess-steps { display: flex; flex-direction: column; gap: 12px; }
+  .a-step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .a-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
+  .a-num { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: #e6e8ef; color: var(--text3); transition: .2s; }
+  .a-name { font-weight: 600; }
+  .a-status { margin-left: auto; font-size: 12px; color: var(--text3); }
+  .a-body { padding: 0 18px 16px; display: none; }
+  .a-step.active .a-num { background: var(--primary); color: #fff; }
+  .a-step.active .a-status { color: var(--primary); }
+  .a-step.done { border-left: 3px solid var(--green); }
+  .a-step.done .a-num { background: var(--green); color: #fff; }
+  .a-step.done .a-status { color: var(--green); }
+  .a-step.done .a-body { display: block; }
+
   .result-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
   .res-cand h2 { font-size: 18px; margin-bottom: 2px; }
   .res-cand .meta { color: var(--text3); font-size: 13px; }
@@ -249,15 +264,24 @@
     <!-- 评估进行中 -->
     <div id="page-progress" class="hidden">
       <div class="page-title">评估进行中</div>
-      <div class="page-desc">候选人：<b id="prog-name"></b></div>
-      <div class="card">
-        <div class="progress-steps" id="progress-steps">
-          <div class="p-step wait" data-step="1"><div class="dot">1</div><div><div class="p-name">第一印象与初步诊断</div><div class="p-desc">目标定位 + 约面/不约面初判</div></div></div>
-          <div class="p-step wait" data-step="2"><div class="dot">2</div><div><div class="p-name">地毯式深度审计</div><div class="p-desc">硬伤 / 夸大 / 逻辑矛盾识别</div></div></div>
-          <div class="p-step wait" data-step="3"><div class="dot">3</div><div><div class="p-name">致命弱点 + 追问清单</div><div class="p-desc">约面前必须验证的要点</div></div></div>
-          <div class="p-step wait" data-step="4"><div class="dot">5</div><div><div class="p-name">最终裁决</div><div class="p-desc">整体评价 + 风险点 + 行动建议</div></div></div>
+      <div class="page-desc">候选人：<b id="prog-name"></b>　|　每步完成即实时展示</div>
+      <div class="assess-steps" id="assess-steps">
+        <div class="a-step wait" id="a-step-1">
+          <div class="a-head"><span class="a-num">1</span><span class="a-name">第一印象与初步诊断</span><span class="a-status">等待中</span></div>
+          <div class="a-body"></div>
         </div>
-        <div class="loading" id="progress-tip">正在调用 DeepSeek 评估，通常需 1–3 分钟，请稍候……</div>
+        <div class="a-step wait" id="a-step-2">
+          <div class="a-head"><span class="a-num">2</span><span class="a-name">地毯式深度审计</span><span class="a-status">等待中</span></div>
+          <div class="a-body"></div>
+        </div>
+        <div class="a-step wait" id="a-step-3">
+          <div class="a-head"><span class="a-num">3</span><span class="a-name">致命弱点 + 追问清单</span><span class="a-status">等待中</span></div>
+          <div class="a-body"></div>
+        </div>
+        <div class="a-step wait" id="a-step-5">
+          <div class="a-head"><span class="a-num">5</span><span class="a-name">最终裁决</span><span class="a-status">等待中</span></div>
+          <div class="a-body"></div>
+        </div>
       </div>
     </div>
 
@@ -400,21 +424,57 @@
     renderJdSelect();
   }
 
-  // ---------- 进度动画 ----------
-  function startProgress() {
-    const steps = $$('#progress-steps .p-step');
-    steps.forEach(s => { s.classList.remove('done','active','wait'); s.classList.add('wait'); });
-    let i = 0;
-    progressTimer = setInterval(() => {
-      if (i > 0) steps[i-1].classList.replace('active','done');
-      if (i >= steps.length) { i = 0; steps.forEach(s => { s.classList.remove('done','active','wait'); s.classList.add('wait'); }); }
-      steps[i].classList.replace('wait','active');
-      i++;
-    }, 1200);
+  // ---------- 分步实时展示 ----------
+  function initAssessSteps() {
+    [1, 2, 3, 5].forEach(n => {
+      const el = $('#a-step-' + n);
+      if (!el) return;
+      el.className = 'a-step wait';
+      el.querySelector('.a-status').textContent = '等待中';
+      el.querySelector('.a-body').innerHTML = '';
+    });
   }
-  function stopProgress() { clearInterval(progressTimer); }
+  function renderStepStatus(n, status) {
+    const el = $('#a-step-' + n);
+    if (!el) return;
+    el.className = 'a-step ' + status;
+    el.querySelector('.a-status').textContent = status === 'wait' ? '等待中' : status === 'active' ? '进行中…' : '已完成';
+    if (status !== 'wait') el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function renderStepBody(n, data) {
+    const body = $('#a-step-' + n + ' .a-body');
+    if (!body) return;
+    if (n === 1) {
+      body.innerHTML = `
+        <div class="item3"><div class="q">❓ 目标定位</div><div>${esc(data.target || '-')}</div></div>
+        <div class="item3"><div class="w">🤔 30 秒定论</div><div>${esc(data.verdict || '')}：${esc(data.reason || '-')}</div></div>`;
+    } else if (n === 2) {
+      body.innerHTML = (data.findings || []).map(f => `
+        <div class="item3">
+          <div class="q">❓ ${esc(f.problem || '')}</div>
+          <div class="w">🤔 ${esc(f.impact || '')}</div>
+          <div class="s">💡 ${esc(f.verify || '')}</div>
+        </div>`).join('') || '<div class="loading">无发现</div>';
+    } else if (n === 3) {
+      body.innerHTML = `
+        <div class="final-box">
+          <div class="row"><span class="tag red">致命弱点</span></div>
+          <ul class="q-list">${(data.weaknesses || []).map(w => `<li>${esc(w)}</li>`).join('') || '<li>无</li>'}</ul>
+          <div class="row" style="margin-top:10px"><span class="tag amber">约面追问清单</span></div>
+          <ul class="q-list">${(data.questions || []).map(q => `<li>${esc(q)}</li>`).join('') || '<li>无</li>'}</ul>
+        </div>`;
+    } else if (n === 5) {
+      body.innerHTML = `
+        <div class="final-box">
+          <div class="row"><span class="tag green">整体评价</span><span>${esc(data.overall || '-')}</span></div>
+          <div class="row"><span class="tag red">核心风险</span></div>
+          <ul class="q-list">${(data.risks || []).map(x => `<li>${esc(x)}</li>`).join('') || '<li>无</li>'}</ul>
+          <div class="row"><span class="tag amber">行动建议</span><span><b>${esc(data.action || '-')}</b>：${esc(data.action_reason || '')}</span></div>
+        </div>`;
+    }
+  }
 
-  // ---------- 第一步：评估 ----------
+  // ---------- 第一步：评估（SSE 流式，每步完成实时展示） ----------
   async function startAssess() {
     const fileInput = $('#file-input');
     if (!fileInput.files || !fileInput.files[0]) { toast('请先上传简历文件'); return; }
@@ -425,25 +485,55 @@
     state.jdText = getSelectedJd() ? getSelectedJd().content : '';
     $('#prog-name').textContent = state.resumeName;
     goPage('progress');
-    startProgress();
+    initAssessSteps();
+    renderStepStatus(1, 'active');
 
     const fd = new FormData();
     fd.append('file', fileInput.files[0]);
     fd.append('jd', state.jdText);
 
     try {
-      const resp = await fetch(API + '/api/assess', { method: 'POST', body: fd });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.detail || '评估失败');
-      state.assessResult = data.result;
-      renderResult(data.result);
-      saveHistory();
-      goPage('result');
+      const resp = await fetch(API + '/api/assess-stream', { method: 'POST', body: fd });
+      if (!resp.ok || !resp.body) {
+        let msg = '评估失败';
+        try { msg = (await resp.json()).detail || msg; } catch (e) { }
+        throw new Error(msg);
+      }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const nextMap = { 1: 2, 2: 3, 3: 5, 5: null };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop();
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith('data: ')) continue;
+          const payload = JSON.parse(line.slice(6));
+          if (payload.error) throw new Error(payload.error);
+          if (payload.done) {
+            state.assessResult = payload.result;
+            renderStepStatus(5, 'done');
+            saveHistory();
+            setTimeout(() => { goPage('result'); renderResult(payload.result); }, 600);
+            break;
+          }
+          const num = parseInt((payload.step || '').replace('step', ''), 10);
+          if (!num) continue;
+          renderStepStatus(num, 'done');
+          renderStepBody(num, payload.result);
+          const nx = nextMap[num];
+          if (nx) renderStepStatus(nx, 'active');
+        }
+      }
     } catch (e) {
       toast('评估失败：' + e.message + (e.message.includes('Failed to fetch') ? '（后端未启动？请先运行 backend/app.py）' : ''));
       goPage('new');
     } finally {
-      stopProgress();
       btn.disabled = false;
     }
   }
