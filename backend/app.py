@@ -46,6 +46,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# 强制前端不缓存，确保每次刷新都拿到最新 index.html
+@app.middleware("http")
+async def no_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 MODEL = "deepseek-chat"

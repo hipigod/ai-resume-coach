@@ -352,12 +352,12 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  function doLogin() {
+  async function doLogin() {
     $('#login-view').classList.add('hidden');
     $('#app').classList.remove('hidden');
     goPage('new');
     renderHistory();
-    renderJdSelect();
+    await renderJdSelect();
   }
 
   function goPage(page) {
