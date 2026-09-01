@@ -147,11 +147,6 @@ def run_score(resume_review: dict, interview_text: str, jd_text: str) -> dict:
 
 # ---------- 接口 ----------
 
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "AI 简历教练", "model": MODEL}
-
-
 @app.post("/api/assess")
 async def assess(file: UploadFile = File(...), jd: str = Form("")):
     data = await file.read()
@@ -181,6 +176,12 @@ async def score(payload: dict):
     return {"result": result}
 
 
+# 静态托管前端（在所有 API 路由之后、启动之前注册；html=True 让 / 返回 index.html）
+PROTOTYPE_DIR = Path(__file__).parent.parent / "prototype"
+if PROTOTYPE_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(PROTOTYPE_DIR), html=True), name="static")
+
+
 if __name__ == "__main__":
     import sys
 
@@ -193,9 +194,3 @@ if __name__ == "__main__":
     if not DEEPSEEK_API_KEY:
         print("[提示] 未设置 DEEPSEEK_API_KEY，请先 export DEEPSEEK_API_KEY=sk-xxx 或写入 .env 文件。")
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
-
-# 静态托管前端（放在所有 API 路由之后，避免拦截 /api/*）
-PROTOTYPE_DIR = Path(__file__).parent.parent / "prototype"
-if PROTOTYPE_DIR.exists():
-    app.mount("/", StaticFiles(directory=str(PROTOTYPE_DIR), html=True), name="static")
