@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 简历教练</title>
+<style>
+  :root {
+    --bg: #f4f5f8;
+    --card: #ffffff;
+    --line: #e5e7ee;
+    --text: #1a1d27;
+    --text2: #5b6172;
+    --text3: #9aa0b0;
+    --primary: #3f5efb;
+    --primary-weak: #eef1ff;
+    --green: #16a34a;
+    --green-weak: #e9f9ef;
+    --red: #dc2626;
+    --red-weak: #fdeeee;
+    --amber: #d97706;
+    --amber-weak: #fef5e7;
+    --radius: 14px;
+    --shadow: 0 1px 3px rgba(20,24,40,.06), 0 6px 20px rgba(20,24,40,.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6;
+  }
+  .hidden { display: none !important; }
+  button { font-family: inherit; cursor: pointer; border: none; }
+  input, textarea { font-family: inherit; }
+
+  #login-view {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #1b2450 0%, #3f5efb 100%);
+  }
+  .login-card {
+    background: #fff; border-radius: 18px; padding: 40px 36px; width: 380px;
+    box-shadow: 0 20px 60px rgba(10,15,40,.35);
+  }
+  .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .login-logo .mark { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg,#3f5efb,#7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .login-logo h1 { font-size: 19px; }
+  .login-sub { color: var(--text3); font-size: 13px; margin-bottom: 26px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .field input { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; font-size: 14px; outline: none; transition: .15s; }
+  .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+  .btn { height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; transition: .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #2f4be0; }
+  .btn-primary:disabled { background: #aab4f7; cursor: not-allowed; }
+  .btn-block { width: 100%; }
+  .btn-ghost { background: #fff; color: var(--text2); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+  .login-foot { margin-top: 18px; text-align: center; color: var(--text3); font-size: 12px; }
+
+  #app { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: #1b2450; color: #c7cce0; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px 14px; }
+  .side-logo { display: flex; align-items: center; gap: 9px; color: #fff; margin-bottom: 26px; padding: 0 8px; }
+  .side-logo .mark { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg,#3f5efb,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .side-logo b { font-size: 15px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 9px; color: #c7cce0; font-size: 14px; cursor: pointer; margin-bottom: 4px; transition: .15s; }
+  .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+  .nav-item.active { background: rgba(63,94,251,.28); color: #fff; font-weight: 600; }
+  .nav-item .ico { font-size: 16px; width: 20px; text-align: center; }
+  .side-foot { margin-top: auto; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .user-row { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+  .user-meta b { color: #fff; font-size: 13px; display:block; }
+  .user-meta span { color: #8b92ad; font-size: 11px; }
+
+  .main { flex: 1; padding: 28px 36px; overflow-y: auto; max-height: 100vh; }
+  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-desc { color: var(--text3); font-size: 13px; margin-bottom: 22px; }
+
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+  .card + .card { margin-top: 16px; }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+
+  .upload-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; transition: .15s; color: var(--text2); }
+  .upload-zone:hover { border-color: var(--primary); background: var(--primary-weak); }
+  .upload-zone .up-ico { font-size: 30px; margin-bottom: 8px; }
+  .upload-zone b { color: var(--primary); }
+  .upload-zone .hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .file-chip { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 14px; background: var(--primary-weak); border-radius: 9px; color: var(--primary); font-size: 13px; }
+  textarea.jd { width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; outline: none; resize: vertical; }
+  textarea.jd:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+  .actions { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .progress-steps { display: flex; flex-direction: column; gap: 12px; }
+  .p-step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 11px; background: #fafbfd; border: 1px solid var(--line); }
+  .p-step .dot { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size: 13px; font-weight:700; }
+  .p-step.done .dot { background: var(--green); color: #fff; }
+  .p-step.active .dot { background: var(--primary); color: #fff; animation: pulse 1.2s infinite; }
+  .p-step.wait .dot { background: #e6e8ef; color: var(--text3); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(63,94,251,.4);} 50% { box-shadow: 0 0 0 7px rgba(63,94,251,0);} }
+  .p-step .p-name { font-weight: 600; }
+  .p-step .p-desc { font-size: 12px; color: var(--text3); }
+
+  .result-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .res-cand h2 { font-size: 18px; margin-bottom: 2px; }
+  .res-cand .meta { color: var(--text3); font-size: 13px; }
+  .verdict { padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .verdict.good { background: var(--green-weak); color: var(--green); }
+  .verdict.bad { background: var(--red-weak); color: var(--red); }
+  .verdict.mid { background: var(--amber-weak); color: var(--amber); }
+
+  .step-card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .step-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; background: #fafbfd; user-select: none; }
+  .step-card-head .num { width: 24px; height: 24px; border-radius: 7px; background: var(--primary); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .step-card-head .t { font-weight: 700; }
+  .step-card-head .arrow { margin-left: auto; color: var(--text3); transition: .2s; }
+  .step-card.open .arrow { transform: rotate(180deg); }
+  .step-card-body { padding: 0 18px; max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease; }
+  .step-card.open .step-card-body { padding: 6px 18px 18px; max-height: 2000px; }
+
+  .item3 { border-left: 3px solid var(--line); padding: 10px 14px; margin: 10px 0; background: #fbfbfd; border-radius: 0 9px 9px 0; }
+  .item3 .q { font-weight: 600; color: var(--red); }
+  .item3 .w { color: var(--amber); }
+  .item3 .s { color: var(--green); }
+  .item3 div + div { margin-top: 4px; }
+  .tag { display:inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-right: 6px; }
+  .tag.red { background: var(--red-weak); color: var(--red); }
+  .tag.amber { background: var(--amber-weak); color: var(--amber); }
+  .tag.green { background: var(--green-weak); color: var(--green); }
+  .q-list li { margin: 8px 0 8px 18px; }
+  .final-box { background: #fafbfd; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .final-box .row { display: flex; gap: 10px; margin: 8px 0; }
+
+  .hist-list { display: flex; flex-direction: column; gap: 12px; }
+  .hist-item { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: .15s; }
+  .hist-item:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(20,24,40,.1); }
+  .hist-item .h-ico { width: 40px; height: 40px; border-radius: 10px; background: var(--primary-weak); color: var(--primary); display:flex; align-items:center; justify-content:center; font-size: 18px; flex-shrink:0; }
+  .hist-item .h-main { flex: 1; }
+  .hist-item .h-name { font-weight: 700; font-size: 15px; }
+  .hist-item .h-meta { color: var(--text3); font-size: 12px; margin-top: 2px; }
+  .hist-item .h-time { color: var(--text3); font-size: 12px; flex-shrink: 0; }
+
+  .score-hero { display:flex; align-items:center; gap:22px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 28px; margin-bottom:16px; }
+  .score-big { font-size:52px; font-weight:800; color:var(--primary); line-height:1; }
+  .score-big small { font-size:15px; color:var(--text3); font-weight:600; margin-left:2px; }
+  .score-mid { flex:1; }
+  .score-mid .label { color:var(--text3); font-size:13px; }
+  .score-mid .verdict-line { font-size:18px; font-weight:700; margin-top:4px; }
+  .dim-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:12px; }
+  .dim-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .dim-name { font-weight:700; font-size:15px; }
+  .dim-score { font-size:22px; font-weight:800; }
+  .dim-score.good { color:var(--green); }
+  .dim-score.mid { color:var(--amber); }
+  .dim-score.bad { color:var(--red); }
+  .dim-bar { height:8px; border-radius:6px; background:#eef0f5; overflow:hidden; margin-bottom:10px; }
+  .dim-bar i { display:block; height:100%; border-radius:6px; }
+  .dim-desc { color:var(--text2); font-size:13px; line-height:1.7; }
+  .sum-box { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 24px; margin-top:4px; }
+  .sum-box .t { font-weight:700; margin-bottom:10px; }
+  .sum-box p { color:var(--text2); font-size:14px; line-height:1.8; }
+  .bind-note { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--primary-weak); border-radius:10px; color:var(--primary); font-size:13px; margin-bottom:16px; }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1a1d27; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: .25s; max-width: 80vw; }
+  .toast.show { opacity: 1; }
+  .loading { text-align:center; color:var(--text3); padding: 40px 0; font-size:14px; }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="login-view">
+  <div class="login-card">
+    <div class="login-logo"><div class="mark">📋</div><h1>AI 简历教练</h1></div>
+    <div class="login-sub">招聘方视角 · 两段式评估（简历 + 面试）</div>
+    <div class="field"><label>账号</label><input id="login-user" type="text" value="hr_zhang" placeholder="请输入账号"></div>
+    <div class="field"><label>密码</label><input id="login-pass" type="password" value="123456" placeholder="请输入密码"></div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+    <div class="login-foot">仅限 AI 中心内部使用</div>
+  </div>
+</div>
+
+<!-- 应用 -->
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="side-logo"><div class="mark">📋</div><b>AI 简历教练</b></div>
+    <div class="nav-item active" onclick="goPage('new')"><span class="ico">＋</span> 新评估</div>
+    <div class="nav-item" onclick="goPage('history')"><span class="ico">🕘</span> 历史记录</div>
+    <div class="side-foot">
+      <div class="user-row">
+        <div class="avatar">张</div>
+        <div class="user-meta"><b>张招聘</b><span>招聘负责人 · AI 中心</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- 新评估（第一步） -->
+    <div id="page-new">
+      <div class="page-title">新评估 · 第一步</div>
+      <div class="page-desc">上传候选人简历（PDF/txt），可选粘贴目标岗位 JD，发起标准化简历评估。</div>
+      <div class="card">
+        <div class="card-title">① 候选人简历</div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+          <div class="up-ico">📄</div>
+          <div>点击上传 PDF 或文本简历</div>
+          <div class="hint">支持 PDF / txt / md；图片简历请先转成 PDF</div>
+        </div>
+        <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.md,.text" onchange="fileChosen(this)">
+        <div id="file-chip" class="file-chip hidden"><span>✅</span><span id="file-name"></span><span style="color:var(--text3);cursor:pointer" onclick="event.stopPropagation();clearFile()">✕</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">② 目标岗位 JD <span style="font-weight:400;color:var(--text3);font-size:12px">（可选）</span></div>
+        <textarea class="jd" id="jd-input" placeholder="粘贴目标岗位 JD，评估时将结合 JD 判断匹配度……"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-assess" onclick="startAssess()">开始评估</button>
+        <button class="btn btn-ghost" onclick="clearAll()">清空</button>
+      </div>
+    </div>
+
+    <!-- 评估进行中 -->
+    <div id="page-progress" class="hidden">
+      <div class="page-title">评估进行中</div>
+      <div class="page-desc">候选人：<b id="prog-name"></b></div>
+      <div class="card">
+        <div class="progress-steps" id="progress-steps">
+          <div class="p-step wait" data-step="1"><div class="dot">1</div><div><div class="p-name">第一印象与初步诊断</div><div class="p-desc">目标定位 + 约面/不约面初判</div></div></div>
+          <div class="p-step wait" data-step="2"><div class="dot">2</div><div><div class="p-name">地毯式深度审计</div><div class="p-desc">硬伤 / 夸大 / 逻辑矛盾识别</div></div></div>
+          <div class="p-step wait" data-step="3"><div class="dot">3</div><div><div class="p-name">致命弱点 + 追问清单</div><div class="p-desc">约面前必须验证的要点</div></div></div>
+          <div class="p-step wait" data-step="4"><div class="dot">5</div><div><div class="p-name">最终裁决</div><div class="p-desc">整体评价 + 风险点 + 行动建议</div></div></div>
+        </div>
+        <div class="loading" id="progress-tip">正在调用 DeepSeek 评估，通常需 1–3 分钟，请稍候……</div>
+      </div>
+    </div>
+
+    <!-- 结果页（第一步） -->
+    <div id="page-result" class="hidden">
+      <div class="result-head" id="result-head"></div>
+      <div id="result-body"></div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="goPage('interview-upload')">→ 进入面试评分（第二步）</button>
+        <button class="btn btn-ghost" onclick="window.print()">⬇ 导出 / 打印</button>
+        <button class="btn btn-ghost" onclick="goPage('new')">重新评估</button>
+      </div>
+    </div>
+
+    <!-- 面试记录上传（第二步） -->
+    <div id="page-interview-upload" class="hidden">
+      <div class="page-title">面试评分 · 第二步</div>
+      <div class="page-desc">上传面试过程记录，结合第一步评估结果，从 5 个维度给出录用评分。</div>
+      <div class="bind-note">🔗 已绑定：<b id="bind-name"></b>（第一步评估结论将作为评分上下文）</div>
+      <div class="card">
+        <div class="card-title">面试过程记录</div>
+        <textarea class="jd" id="interview-text" style="min-height:220px" placeholder="粘贴面试官 ↔ 面试者的对话记录（或整场面试要点）……"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-score" onclick="startScore()">开始评分</button>
+        <button class="btn btn-ghost" onclick="goPage('result')">← 返回评估结果</button>
+      </div>
+    </div>
+
+    <!-- 面试评分结果（第二步） -->
+    <div id="page-interview-result" class="hidden">
+      <div class="page-title">面试评分结果</div>
+      <div class="page-desc" id="score-meta"></div>
+      <div id="score-body"></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="window.print()">⬇ 导出 / 打印</button>
+        <button class="btn btn-ghost" onclick="goPage('result')">← 返回评估结果</button>
+      </div>
+    </div>
+
+    <!-- 历史记录 -->
+    <div id="page-history" class="hidden">
+      <div class="page-title">历史记录</div>
+      <div class="page-desc">本轮真实评估结果（本地保存，刷新后仍可查看）</div>
+      <div class="hist-list" id="hist-list">
+        <div class="loading">暂无记录，完成一次评估后自动保存到这里。</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const API = location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+  let toastTimer;
+  let progressTimer;
+
+  const state = {
+    resumeName: '',
+    jdText: '',
+    assessResult: null,
+    scoreResult: null,
+  };
+
+  function toast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function doLogin() {
+    $('#login-view').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    goPage('new');
+    renderHistory();
+  }
+
+  function goPage(page) {
+    ['new', 'progress', 'result', 'interview-upload', 'interview-result', 'history'].forEach(p => $('#page-' + p).classList.add('hidden'));
+    $('#page-' + page).classList.remove('hidden');
+    $$('.nav-item').forEach(n => n.classList.remove('active'));
+    const target = page === 'history' ? 'history' : 'new';
+    $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === undefined ? false : (n.textContent.includes('历史') ? page==='history' : page!=='history')));
+    window.scrollTo(0, 0);
+  }
+
+  function fileChosen(input) {
+    if (input.files && input.files[0]) {
+      $('#file-name').textContent = input.files[0].name;
+      $('#file-chip').classList.remove('hidden');
+      $('#upload-zone').style.display = 'none';
+    }
+  }
+  function clearFile() {
+    $('#file-chip').classList.add('hidden');
+    $('#upload-zone').style.display = '';
+    $('#file-input').value = '';
+  }
+  function clearAll() { clearFile(); $('#jd-input').value = ''; }
+
+  // ---------- 进度动画 ----------
+  function startProgress() {
+    const steps = $$('#progress-steps .p-step');
+    steps.forEach(s => { s.classList.remove('done','active','wait'); s.classList.add('wait'); });
+    let i = 0;
+    progressTimer = setInterval(() => {
+      if (i > 0) steps[i-1].classList.replace('active','done');
+      if (i >= steps.length) { i = 0; steps.forEach(s => { s.classList.remove('done','active','wait'); s.classList.add('wait'); }); }
+      steps[i].classList.replace('wait','active');
+      i++;
+    }, 1200);
+  }
+  function stopProgress() { clearInterval(progressTimer); }
+
+  // ---------- 第一步：评估 ----------
+  async function startAssess() {
+    const fileInput = $('#file-input');
+    if (!fileInput.files || !fileInput.files[0]) { toast('请先上传简历文件'); return; }
+    const btn = $('#btn-assess');
+    btn.disabled = true;
+    state.resumeName = fileInput.files[0].name;
+    state.jdText = $('#jd-input').value;
+    $('#prog-name').textContent = state.resumeName;
+    goPage('progress');
+    startProgress();
+
+    const fd = new FormData();
+    fd.append('file', fileInput.files[0]);
+    fd.append('jd', state.jdText);
+
+    try {
+      const resp = await fetch(API + '/api/assess', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || '评估失败');
+      state.assessResult = data.result;
+      renderResult(data.result);
+      saveHistory();
+      goPage('result');
+    } catch (e) {
+      toast('评估失败：' + e.message + (e.message.includes('Failed to fetch') ? '（后端未启动？请先运行 backend/app.py）' : ''));
+      goPage('new');
+    } finally {
+      stopProgress();
+      btn.disabled = false;
+    }
+  }
+
+  function verdictClass(v) {
+    if (/通过|约面|建议约面/.test(v)) return 'good';
+    if (/待定/.test(v)) return 'mid';
+    if (/不通过|不约面|关闭|建议关闭/.test(v)) return 'bad';
+    return 'mid';
+  }
+
+  function renderResult(r) {
+    const head = $('#result-head');
+    const verdict = r.step1.verdict || '待定';
+    head.innerHTML = `
+      <div class="res-cand">
+        <h2>${esc(state.resumeName.replace(/\.(pdf|txt|md)$/i, ''))}</h2>
+        <div class="meta">目标定位：${esc(r.step1.target || '-')}　|　${new Date().toLocaleString()}</div>
+      </div>
+      <div class="verdict ${verdictClass(verdict)}">${esc(verdict)}</div>`;
+
+    const findings = (r.step2.findings || []).map(f => `
+      <div class="item3">
+        <div class="q">❓ ${esc(f.problem || '')}</div>
+        <div class="w">🤔 ${esc(f.impact || '')}</div>
+        <div class="s">💡 ${esc(f.verify || '')}</div>
+      </div>`).join('');
+
+    const weaknesses = (r.step3.weaknesses || []).map(w => `<li>${esc(w)}</li>`).join('');
+    const questions = (r.step3.questions || []).map(q => `<li>${esc(q)}</li>`).join('');
+    const risks = (r.step5.risks || []).map(x => `<li>${esc(x)}</li>`).join('');
+
+    $('#result-body').innerHTML = `
+      <div class="step-card open" onclick="toggleStep(this)">
+        <div class="step-card-head"><div class="num">1</div><div class="t">第一印象与初步诊断</div><div class="arrow">▾</div></div>
+        <div class="step-card-body">
+          <div class="item3"><div class="q">❓ 目标定位</div><div>${esc(r.step1.target || '-')}</div></div>
+          <div class="item3"><div class="w">🤔 30 秒定论</div><div>${esc(verdict)}：${esc(r.step1.reason || '-')}</div></div>
+        </div>
+      </div>
+      <div class="step-card open" onclick="toggleStep(this)">
+        <div class="step-card-head"><div class="num">2</div><div class="t">地毯式深度审计</div><div class="arrow">▾</div></div>
+        <div class="step-card-body">${findings || '<div class="loading">无发现</div>'}</div>
+      </div>
+      <div class="step-card open" onclick="toggleStep(this)">
+        <div class="step-card-head"><div class="num">3</div><div class="t">致命弱点 + 追问清单</div><div class="arrow">▾</div></div>
+        <div class="step-card-body">
+          <div class="final-box">
+            <div class="row"><span class="tag red">致命弱点</span></div>
+            <ul class="q-list">${weaknesses || '<li>无</li>'}</ul>
+            <div class="row" style="margin-top:10px"><span class="tag amber">约面追问清单</span></div>
+            <ul class="q-list">${questions || '<li>无</li>'}</ul>
+          </div>
+        </div>
+      </div>
+      <div class="step-card open" onclick="toggleStep(this)">
+        <div class="step-card-head"><div class="num">5</div><div class="t">最终裁决</div><div class="arrow">▾</div></div>
+        <div class="step-card-body">
+          <div class="final-box">
+            <div class="row"><span class="tag green">整体评价</span><span>${esc(r.step5.overall || '-')}</span></div>
+            <div class="row"><span class="tag red">核心风险</span></div>
+            <ul class="q-list">${risks || '<li>无</li>'}</ul>
+            <div class="row"><span class="tag amber">行动建议</span><span><b>${esc(r.step5.action || '-')}</b>：${esc(r.step5.action_reason || '')}</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ---------- 第二步：评分 ----------
+  async function startScore() {
+    const interviewText = $('#interview-text').value;
+    if (!interviewText.trim()) { toast('请先粘贴面试记录'); return; }
+    if (!state.assessResult) { toast('请先完成第一步简历评估'); return; }
+    const btn = $('#btn-score');
+    btn.disabled = true;
+    toast('正在评分中，请稍候……');
+
+    try {
+      const resp = await fetch(API + '/api/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume_review: state.assessResult,
+          interview_text: interviewText,
+          jd: state.jdText,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || '评分失败');
+      state.scoreResult = data.result;
+      renderScore(data.result);
+      saveHistory();
+      goPage('interview-result');
+    } catch (e) {
+      toast('评分失败：' + e.message + (e.message.includes('Failed to fetch') ? '（后端未启动？）' : ''));
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function dimClass(s) {
+    if (s >= 8) return 'good';
+    if (s >= 6) return 'mid';
+    return 'bad';
+  }
+  function barColor(s) {
+    if (s >= 8) return 'linear-gradient(90deg,#16a34a,#4ade80)';
+    if (s >= 6) return 'linear-gradient(90deg,#d97706,#f59e0b)';
+    return 'linear-gradient(90deg,#dc2626,#f87171)';
+  }
+
+  function renderScore(r) {
+    $('#score-meta').textContent = `${state.resumeName.replace(/\.(pdf|txt|md)$/i, '')}　|　${new Date().toLocaleString()}`;
+    const dims = (r.dims || []).map((d, i) => `
+      <div class="dim-card">
+        <div class="dim-head"><div class="dim-name">${['①','②','③','④','⑤'][i] || ''} ${esc(d.name || '')}</div><div class="dim-score ${dimClass(d.score)}">${d.score != null ? d.score.toFixed(1) : '-'}</div></div>
+        <div class="dim-bar"><i style="width:${(d.score || 0) * 10}%;background:${barColor(d.score || 0)}"></i></div>
+        <div class="dim-desc">${esc(d.summary || '')}</div>
+      </div>`).join('');
+
+    const verdict = r.verdict || '待定';
+    const vColor = verdictClass(verdict) === 'good' ? 'var(--green)' : verdictClass(verdict) === 'bad' ? 'var(--red)' : 'var(--amber)';
+
+    $('#score-body').innerHTML = `
+      <div class="score-hero">
+        <div class="score-big">${r.total != null ? r.total.toFixed(1) : '-'}<small>/ 10</small></div>
+        <div class="score-mid">
+          <div class="label">综合评分（5 维度等权平均）</div>
+          <div class="verdict-line" style="color:${vColor}">${esc(verdict)}</div>
+        </div>
+        <div class="verdict ${verdictClass(verdict)}">${esc(verdict)}</div>
+      </div>
+      ${dims}
+      <div class="sum-box">
+        <div class="t">总体总结</div>
+        <p>${esc(r.summary || '')}</p>
+      </div>`;
+  }
+
+  // ---------- 历史（本地保存） ----------
+  function saveHistory() {
+    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    list.unshift({
+      name: state.resumeName,
+      time: new Date().toLocaleString(),
+      assess: state.assessResult,
+      score: state.scoreResult,
+    });
+    localStorage.setItem('resume_coach_history', JSON.stringify(list.slice(0, 50)));
+  }
+  function renderHistory() {
+    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    const box = $('#hist-list');
+    if (!list.length) {
+      box.innerHTML = '<div class="loading">暂无记录，完成一次评估后自动保存到这里。</div>';
+      return;
+    }
+    box.innerHTML = list.map((it, idx) => {
+      const v = it.score ? (it.score.verdict || '') : (it.assess ? (it.assess.step1.verdict || '') : '');
+      const total = it.score && it.score.total != null ? `${it.score.total.toFixed(1)}分` : '';
+      return `<div class="hist-item" onclick="viewHistory(${idx})">
+        <div class="h-ico">📄</div>
+        <div class="h-main">
+          <div class="h-name">${esc(it.name)}</div>
+          <div class="h-meta">${v ? `<span class="tag ${verdictClass(v)}">${esc(v)}</span>` : ''}${total}</div>
+        </div>
+        <div class="h-time">${esc(it.time)}</div>
+      </div>`;
+    }).join('');
+  }
+  function viewHistory(idx) {
+    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    const it = list[idx];
+    if (!it) return;
+    state.resumeName = it.name;
+    state.assessResult = it.assess;
+    state.scoreResult = it.score;
+    if (it.assess) { renderResult(it.assess); goPage('result'); }
+    else if (it.score) { renderScore(it.score); goPage('interview-result'); }
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function toggleStep(el) { el.classList.toggle('open'); }
+</script>
+</body>
+</html>
