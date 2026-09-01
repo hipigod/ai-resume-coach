@@ -12,6 +12,9 @@ import io
 import json
 import os
 import re
+import threading
+import uuid
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -182,6 +185,76 @@ async def parse_file(file: UploadFile = File(...)):
     data = await file.read()
     text = extract_text(file.filename, data)
     return {"filename": file.filename, "text": text}
+
+
+# ---------- JD 存储（后端 JSON 文件持久化，避免依赖 localStorage） ----------
+
+JD_FILE = Path(__file__).parent / "jds.json"
+_jd_lock = threading.Lock()
+
+
+def _now() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _load_jds() -> list:
+    if JD_FILE.exists():
+        try:
+            data = json.loads(JD_FILE.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+    return []
+
+
+def _save_jds(jds: list) -> None:
+    with _jd_lock:
+        JD_FILE.write_text(json.dumps(jds, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+@app.get("/api/jds")
+def list_jds():
+    return {"jds": _load_jds()}
+
+
+@app.post("/api/jds")
+async def create_jd(payload: dict):
+    name = (payload.get("name") or "").strip()
+    content = (payload.get("content") or "").strip()
+    if not name or not content:
+        raise HTTPException(status_code=400, detail="岗位名称和内容不能为空")
+    jds = _load_jds()
+    jd = {
+        "id": "jd_" + uuid.uuid4().hex[:12],
+        "name": name,
+        "content": content,
+        "createdAt": _now(),
+        "updatedAt": _now(),
+    }
+    jds.append(jd)
+    _save_jds(jds)
+    return {"jd": jd}
+
+
+@app.put("/api/jds/{jd_id}")
+async def update_jd(jd_id: str, payload: dict):
+    jds = _load_jds()
+    jd = next((j for j in jds if j.get("id") == jd_id), None)
+    if jd is None:
+        raise HTTPException(status_code=404, detail="JD 不存在")
+    if "name" in payload:
+        jd["name"] = (payload.get("name") or "").strip()
+    if "content" in payload:
+        jd["content"] = (payload.get("content") or "").strip()
+    jd["updatedAt"] = _now()
+    _save_jds(jds)
+    return {"jd": jd}
+
+
+@app.delete("/api/jds/{jd_id}")
+async def delete_jd(jd_id: str):
+    _save_jds([j for j in _load_jds() if j.get("id") != jd_id])
+    return {"ok": True}
 
 
 # 静态托管前端（在所有 API 路由之后、启动之前注册；html=True 让 / 返回 index.html）

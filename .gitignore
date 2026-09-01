@@ -10,3 +10,6 @@ __pycache__/
 # 运行时日志
 *.log
 backend/*.log
+
+# JD 运行时数据（岗位库，用户数据不入库）
+backend/jds.json

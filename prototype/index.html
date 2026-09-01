@@ -611,23 +611,18 @@
     else if (it.score) { renderScore(it.score); goPage('interview-result'); }
   }
 
-  // ---------- JD 管理（本地持久化） ----------
-  function getJds() {
+  // ---------- JD 管理（后端持久化） ----------
+  let jdsCache = [];
+
+  async function loadJds() {
     try {
-      const v = JSON.parse(localStorage.getItem('resume_coach_jds') || '[]');
-      return Array.isArray(v) ? v : [];
+      const resp = await fetch(API + '/api/jds');
+      const data = await resp.json();
+      jdsCache = data.jds || [];
     } catch (e) {
-      return [];
+      jdsCache = [];
     }
-  }
-  function setJds(list) {
-    try {
-      localStorage.setItem('resume_coach_jds', JSON.stringify(list));
-      return true;
-    } catch (e) {
-      toast('⚠️ 本地存储写入失败，JD 可能无法保留');
-      return false;
-    }
+    return jdsCache;
   }
   function getSelectedJdId() {
     return localStorage.getItem('resume_coach_selected_jd') || '';
@@ -637,11 +632,11 @@
   }
   function getSelectedJd() {
     const id = getSelectedJdId();
-    return getJds().find(j => j.id === id) || null;
+    return jdsCache.find(j => j.id === id) || null;
   }
 
-  function renderJdSelect() {
-    const jds = getJds();
+  async function renderJdSelect() {
+    const jds = await loadJds();
     const sel = $('#jd-select');
     const selectedId = getSelectedJdId();
     sel.innerHTML = '<option value="">不使用 JD</option>' + jds.map(j =>
@@ -702,35 +697,53 @@
     $('#jd-modal').classList.add('hidden');
   }
 
-  function delJd() {
+  async function delJd() {
     const id = getSelectedJdId();
     const jd = getSelectedJd();
     if (!id || !jd) return;
     if (!confirm(`确定删除 JD「${jd.name}」吗？`)) return;
-    setJds(getJds().filter(j => j.id !== id));
+    try {
+      const resp = await fetch(API + '/api/jds/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!resp.ok) throw new Error('删除失败');
+    } catch (e) {
+      toast('删除失败：' + e.message);
+      return;
+    }
     setSelectedJdId('');
-    renderJdSelect();
+    await renderJdSelect();
     toast('已删除');
   }
 
-  function saveJd() {
+  async function saveJd() {
     if (jdParsing) { toast('文件正在解析中，请稍候再保存'); return; }
     const name = $('#jd-name').value.trim();
     const content = $('#jd-content').value.trim();
     if (!name) { toast('请填写岗位名称'); return; }
     if (!content) { toast('请填写或上传 JD 内容'); return; }
-    const jds = getJds();
-    if (editingJdId) {
-      const jd = jds.find(j => j.id === editingJdId);
-      if (jd) { jd.name = name; jd.content = content; jd.updatedAt = new Date().toLocaleString(); }
-    } else {
-      const newId = 'jd_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      jds.push({ id: newId, name, content, createdAt: new Date().toLocaleString(), updatedAt: new Date().toLocaleString() });
-      setSelectedJdId(newId);
+    try {
+      if (editingJdId) {
+        const resp = await fetch(API + '/api/jds/' + encodeURIComponent(editingJdId), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content }),
+        });
+        if (!resp.ok) throw new Error((await resp.json()).detail || '更新失败');
+      } else {
+        const resp = await fetch(API + '/api/jds', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content }),
+        });
+        if (!resp.ok) throw new Error((await resp.json()).detail || '保存失败');
+        const data = await resp.json();
+        setSelectedJdId(data.jd.id);
+      }
+    } catch (e) {
+      toast('保存失败：' + e.message + (e.message.includes('Failed to fetch') ? '（后端未启动？）' : ''));
+      return;
     }
-    setJds(jds);
     closeJdModal();
-    renderJdSelect();
+    await renderJdSelect();
     toast('已保存');
   }
 
