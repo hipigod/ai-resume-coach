@@ -337,6 +337,13 @@
   let toastTimer;
   let progressTimer;
 
+  // localStorage 安全包装：沙箱/隐私模式下存储可能被禁用，直接访问会抛异常导致整条渲染链崩溃
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  function lsGetJSON(k, fallback) {
+    try { const v = lsGet(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+
   const state = {
     resumeName: '',
     jdText: '',
@@ -572,17 +579,17 @@
 
   // ---------- 历史（本地保存） ----------
   function saveHistory() {
-    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    const list = lsGetJSON('resume_coach_history', []);
     list.unshift({
       name: state.resumeName,
       time: new Date().toLocaleString(),
       assess: state.assessResult,
       score: state.scoreResult,
     });
-    localStorage.setItem('resume_coach_history', JSON.stringify(list.slice(0, 50)));
+    lsSet('resume_coach_history', JSON.stringify(list.slice(0, 50)));
   }
   function renderHistory() {
-    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    const list = lsGetJSON('resume_coach_history', []);
     const box = $('#hist-list');
     if (!list.length) {
       box.innerHTML = '<div class="loading">暂无记录，完成一次评估后自动保存到这里。</div>';
@@ -602,7 +609,7 @@
     }).join('');
   }
   function viewHistory(idx) {
-    const list = JSON.parse(localStorage.getItem('resume_coach_history') || '[]');
+    const list = lsGetJSON('resume_coach_history', []);
     const it = list[idx];
     if (!it) return;
     state.resumeName = it.name;
@@ -626,10 +633,10 @@
     return jdsCache;
   }
   function getSelectedJdId() {
-    return localStorage.getItem('resume_coach_selected_jd') || '';
+    return lsGet('resume_coach_selected_jd') || '';
   }
   function setSelectedJdId(id) {
-    localStorage.setItem('resume_coach_selected_jd', id || '');
+    lsSet('resume_coach_selected_jd', id || '');
   }
   function getSelectedJd() {
     const id = getSelectedJdId();
