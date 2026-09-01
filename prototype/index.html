@@ -163,6 +163,20 @@
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1a1d27; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: .25s; max-width: 80vw; }
   .toast.show { opacity: 1; }
   .loading { text-align:center; color:var(--text3); padding: 40px 0; font-size:14px; }
+
+  /* ===== JD 管理 ===== */
+  .jd-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .jd-bar select { flex:1; min-width:200px; height:44px; border:1px solid var(--line); border-radius:10px; padding:0 12px; font-size:14px; outline:none; background:#fff; color:var(--text); }
+  .jd-bar select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+  .jd-preview { margin-top:14px; padding:12px 14px; background:#fafbfd; border:1px solid var(--line); border-radius:10px; }
+  .jd-preview-name { font-weight:700; margin-bottom:4px; color:var(--primary); font-size:13px; }
+  .jd-preview-content { color:var(--text2); font-size:12px; line-height:1.7; word-break:break-all; }
+
+  .modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; }
+  .modal-mask { position:absolute; inset:0; background:rgba(10,15,40,.45); }
+  .modal-card { position:relative; background:#fff; border-radius:16px; padding:28px; width:600px; max-width:92vw; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(10,15,40,.3); }
+  .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
+  .jd-upload-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
 </style>
 </head>
 <body>
@@ -209,8 +223,16 @@
         <div id="file-chip" class="file-chip hidden"><span>✅</span><span id="file-name"></span><span style="color:var(--text3);cursor:pointer" onclick="event.stopPropagation();clearFile()">✕</span></div>
       </div>
       <div class="card">
-        <div class="card-title">② 目标岗位 JD <span style="font-weight:400;color:var(--text3);font-size:12px">（可选）</span></div>
-        <textarea class="jd" id="jd-input" placeholder="粘贴目标岗位 JD，评估时将结合 JD 判断匹配度……"></textarea>
+        <div class="card-title">② 目标岗位 JD <span style="font-weight:400;color:var(--text3);font-size:12px">（可选，可增删改查，保存后下次仍可见）</span></div>
+        <div class="jd-bar">
+          <select id="jd-select" onchange="onJdChange()">
+            <option value="">不使用 JD</option>
+          </select>
+          <button class="btn btn-ghost" onclick="openJdModal()">＋ 新增 JD</button>
+          <button class="btn btn-ghost" id="btn-jd-edit" onclick="editJd()" disabled>✎ 编辑</button>
+          <button class="btn btn-ghost" id="btn-jd-del" onclick="delJd()" disabled>🗑 删除</button>
+        </div>
+        <div id="jd-preview" class="jd-preview hidden"></div>
       </div>
       <div class="actions">
         <button class="btn btn-primary" id="btn-assess" onclick="startAssess()">开始评估</button>
@@ -281,6 +303,31 @@
   </main>
 </div>
 
+<!-- JD 编辑弹窗 -->
+<div id="jd-modal" class="modal hidden">
+  <div class="modal-mask" onclick="closeJdModal()"></div>
+  <div class="modal-card">
+    <div class="modal-title" id="jd-modal-title">新增 JD</div>
+    <div class="field">
+      <label>岗位名称</label>
+      <input id="jd-name" placeholder="如：大模型算法工程师">
+    </div>
+    <div class="field">
+      <label>JD 内容</label>
+      <div class="jd-upload-row">
+        <button class="btn btn-ghost" onclick="document.getElementById('jd-file-input').click()">📎 上传文件（txt/md/pdf）</button>
+        <input type="file" id="jd-file-input" class="hidden" accept=".pdf,.txt,.md,.text" onchange="jdFileChosen(this)">
+        <span id="jd-file-name" style="color:var(--text3);font-size:12px"></span>
+      </div>
+      <textarea class="jd" id="jd-content" placeholder="或直接在此粘贴 JD 内容…"></textarea>
+    </div>
+    <div class="actions" style="margin-top:8px">
+      <button class="btn btn-primary" onclick="saveJd()">保存</button>
+      <button class="btn btn-ghost" onclick="closeJdModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -310,6 +357,7 @@
     $('#app').classList.remove('hidden');
     goPage('new');
     renderHistory();
+    renderJdSelect();
   }
 
   function goPage(page) {
@@ -333,7 +381,11 @@
     $('#upload-zone').style.display = '';
     $('#file-input').value = '';
   }
-  function clearAll() { clearFile(); $('#jd-input').value = ''; }
+  function clearAll() {
+    clearFile();
+    setSelectedJdId('');
+    renderJdSelect();
+  }
 
   // ---------- 进度动画 ----------
   function startProgress() {
@@ -356,7 +408,7 @@
     const btn = $('#btn-assess');
     btn.disabled = true;
     state.resumeName = fileInput.files[0].name;
-    state.jdText = $('#jd-input').value;
+    state.jdText = getSelectedJd() ? getSelectedJd().content : '';
     $('#prog-name').textContent = state.resumeName;
     goPage('progress');
     startProgress();
@@ -557,6 +609,136 @@
     state.scoreResult = it.score;
     if (it.assess) { renderResult(it.assess); goPage('result'); }
     else if (it.score) { renderScore(it.score); goPage('interview-result'); }
+  }
+
+  // ---------- JD 管理（本地持久化） ----------
+  function getJds() {
+    return JSON.parse(localStorage.getItem('resume_coach_jds') || '[]');
+  }
+  function setJds(list) {
+    localStorage.setItem('resume_coach_jds', JSON.stringify(list));
+  }
+  function getSelectedJdId() {
+    return localStorage.getItem('resume_coach_selected_jd') || '';
+  }
+  function setSelectedJdId(id) {
+    localStorage.setItem('resume_coach_selected_jd', id || '');
+  }
+  function getSelectedJd() {
+    const id = getSelectedJdId();
+    return getJds().find(j => j.id === id) || null;
+  }
+
+  function renderJdSelect() {
+    const jds = getJds();
+    const sel = $('#jd-select');
+    const selectedId = getSelectedJdId();
+    sel.innerHTML = '<option value="">不使用 JD</option>' + jds.map(j =>
+      `<option value="${j.id}" ${j.id === selectedId ? 'selected' : ''}>${esc(j.name)}</option>`
+    ).join('');
+    updateJdPreview();
+  }
+
+  function updateJdPreview() {
+    const jd = getSelectedJd();
+    const preview = $('#jd-preview');
+    const editBtn = $('#btn-jd-edit');
+    const delBtn = $('#btn-jd-del');
+    if (jd) {
+      preview.classList.remove('hidden');
+      preview.innerHTML = `<div class="jd-preview-name">📌 ${esc(jd.name)}</div><div class="jd-preview-content">${esc(jd.content.slice(0, 300))}${jd.content.length > 300 ? '…' : ''}</div>`;
+      editBtn.disabled = false;
+      delBtn.disabled = false;
+    } else {
+      preview.classList.add('hidden');
+      preview.innerHTML = '';
+      editBtn.disabled = true;
+      delBtn.disabled = true;
+    }
+  }
+
+  function onJdChange() {
+    setSelectedJdId($('#jd-select').value);
+    updateJdPreview();
+  }
+
+  let editingJdId = null;
+
+  function openJdModal() {
+    editingJdId = null;
+    $('#jd-modal-title').textContent = '新增 JD';
+    $('#jd-name').value = '';
+    $('#jd-content').value = '';
+    $('#jd-file-name').textContent = '';
+    $('#jd-file-input').value = '';
+    $('#jd-modal').classList.remove('hidden');
+  }
+
+  function editJd() {
+    const jd = getSelectedJd();
+    if (!jd) { toast('请先在下拉框选择一个 JD'); return; }
+    editingJdId = jd.id;
+    $('#jd-modal-title').textContent = '编辑 JD';
+    $('#jd-name').value = jd.name;
+    $('#jd-content').value = jd.content;
+    $('#jd-file-name').textContent = '';
+    $('#jd-file-input').value = '';
+    $('#jd-modal').classList.remove('hidden');
+  }
+
+  function closeJdModal() {
+    $('#jd-modal').classList.add('hidden');
+  }
+
+  function delJd() {
+    const id = getSelectedJdId();
+    const jd = getSelectedJd();
+    if (!id || !jd) return;
+    if (!confirm(`确定删除 JD「${jd.name}」吗？`)) return;
+    setJds(getJds().filter(j => j.id !== id));
+    setSelectedJdId('');
+    renderJdSelect();
+    toast('已删除');
+  }
+
+  function saveJd() {
+    const name = $('#jd-name').value.trim();
+    const content = $('#jd-content').value.trim();
+    if (!name) { toast('请填写岗位名称'); return; }
+    if (!content) { toast('请填写或上传 JD 内容'); return; }
+    const jds = getJds();
+    if (editingJdId) {
+      const jd = jds.find(j => j.id === editingJdId);
+      if (jd) { jd.name = name; jd.content = content; jd.updatedAt = new Date().toLocaleString(); }
+    } else {
+      jds.push({ id: 'jd_' + Date.now(), name, content, createdAt: new Date().toLocaleString(), updatedAt: new Date().toLocaleString() });
+      setSelectedJdId(jds[jds.length - 1].id);
+    }
+    setJds(jds);
+    closeJdModal();
+    renderJdSelect();
+    toast('已保存');
+  }
+
+  async function jdFileChosen(input) {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    $('#jd-file-name').textContent = '解析中：' + f.name + '…';
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const resp = await fetch(API + '/api/parse-file', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || '解析失败');
+      $('#jd-content').value = data.text;
+      $('#jd-file-name').textContent = '✅ ' + f.name + '（已解析，可继续编辑）';
+      if (!$('#jd-name').value.trim()) {
+        $('#jd-name').value = f.name.replace(/\.(pdf|txt|md|text)$/i, '');
+      }
+    } catch (e) {
+      $('#jd-file-name').textContent = '解析失败';
+      toast('文件解析失败：' + e.message);
+    }
   }
 
   function esc(s) {

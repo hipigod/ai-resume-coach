@@ -176,6 +176,14 @@ async def score(payload: dict):
     return {"result": result}
 
 
+@app.post("/api/parse-file")
+async def parse_file(file: UploadFile = File(...)):
+    """解析上传的 txt/md/pdf 文件为纯文本（用于 JD 文件上传）。"""
+    data = await file.read()
+    text = extract_text(file.filename, data)
+    return {"filename": file.filename, "text": text}
+
+
 # 静态托管前端（在所有 API 路由之后、启动之前注册；html=True 让 / 返回 index.html）
 PROTOTYPE_DIR = Path(__file__).parent.parent / "prototype"
 if PROTOTYPE_DIR.exists():
