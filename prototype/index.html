@@ -168,9 +168,15 @@
   .jd-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .jd-bar select { flex:1; min-width:200px; height:44px; border:1px solid var(--line); border-radius:10px; padding:0 12px; font-size:14px; outline:none; background:#fff; color:var(--text); }
   .jd-bar select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
-  .jd-preview { margin-top:14px; padding:12px 14px; background:#fafbfd; border:1px solid var(--line); border-radius:10px; }
-  .jd-preview-name { font-weight:700; margin-bottom:4px; color:var(--primary); font-size:13px; }
-  .jd-preview-content { color:var(--text2); font-size:12px; line-height:1.7; word-break:break-all; }
+  .jd-preview { margin-top:14px; padding:14px 16px; background:#fafbfd; border:1px solid var(--line); border-radius:10px; max-height:420px; overflow-y:auto; }
+  .jd-preview-name { font-weight:700; margin-bottom:8px; color:var(--primary); font-size:13px; }
+  .jd-preview-content.md { color:var(--text2); font-size:13px; line-height:1.75; word-break:break-word; }
+  .jd-preview-content.md h1, .jd-preview-content.md h2, .jd-preview-content.md h3 { margin:10px 0 6px; color:var(--text); font-weight:700; }
+  .jd-preview-content.md h1 { font-size:17px; } .jd-preview-content.md h2 { font-size:15px; } .jd-preview-content.md h3 { font-size:14px; }
+  .jd-preview-content.md p { margin:4px 0; }
+  .jd-preview-content.md ul, .jd-preview-content.md ol { margin:4px 0 4px 20px; }
+  .jd-preview-content.md li { margin:3px 0; }
+  .jd-preview-content.md strong { color:var(--text); }
 
   .modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; }
   .modal-mask { position:absolute; inset:0; background:rgba(10,15,40,.45); }
@@ -660,7 +666,7 @@
     const delBtn = $('#btn-jd-del');
     if (jd) {
       preview.classList.remove('hidden');
-      preview.innerHTML = `<div class="jd-preview-name">📌 ${esc(jd.name)}</div><div class="jd-preview-content">${esc(jd.content.slice(0, 300))}${jd.content.length > 300 ? '…' : ''}</div>`;
+      preview.innerHTML = `<div class="jd-preview-name">📌 ${esc(jd.name)}</div><div class="jd-preview-content md">${renderMarkdown(jd.content)}</div>`;
       editBtn.disabled = false;
       delBtn.disabled = false;
     } else {
@@ -781,6 +787,43 @@
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // 轻量 markdown 渲染（JD 内容展示用）：先转义 HTML 防 XSS，再解析标题/列表/加粗/段落
+  function mdInline(t) {
+    return t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+  function renderMarkdown(src) {
+    if (!src) return '';
+    const lines = String(src).split('\n');
+    let html = '';
+    let inUl = false, inOl = false;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      let m = line.match(/^(#{1,6})\s+(.*)/);
+      if (m) {
+        const lv = m[1].length;
+        html += `<h${lv}>${mdInline(esc(m[2]))}</h${lv}>`;
+        continue;
+      }
+      m = line.match(/^\s*[-*]\s+(.*)/);
+      if (m) {
+        if (!inUl) { html += '<ul>'; inUl = true; }
+        html += `<li>${mdInline(esc(m[1]))}</li>`;
+        continue;
+      } else if (inUl) { html += '</ul>'; inUl = false; }
+      m = line.match(/^\s*\d+[.、)]\s+(.*)/);
+      if (m) {
+        if (!inOl) { html += '<ol>'; inOl = true; }
+        html += `<li>${mdInline(esc(m[1]))}</li>`;
+        continue;
+      } else if (inOl) { html += '</ol>'; inOl = false; }
+      if (!line.trim()) { html += '<br>'; continue; }
+      html += `<p>${mdInline(esc(line.trim()))}</p>`;
+    }
+    if (inUl) html += '</ul>';
+    if (inOl) html += '</ol>';
+    return html;
   }
   function toggleStep(el) { el.classList.toggle('open'); }
 </script>
