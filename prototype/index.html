@@ -408,6 +408,7 @@
     const btn = $('#btn-assess');
     btn.disabled = true;
     state.resumeName = fileInput.files[0].name;
+    await loadJds();
     state.jdText = getSelectedJd() ? getSelectedJd().content : '';
     $('#prog-name').textContent = state.resumeName;
     goPage('progress');

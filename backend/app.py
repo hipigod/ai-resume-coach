@@ -208,8 +208,10 @@ def _load_jds() -> list:
 
 
 def _save_jds(jds: list) -> None:
-    with _jd_lock:
-        JD_FILE.write_text(json.dumps(jds, ensure_ascii=False, indent=2), encoding="utf-8")
+    # 原子写：先写临时文件再替换，避免写入中断导致文件损坏
+    tmp = JD_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(jds, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp.replace(JD_FILE)
 
 
 @app.get("/api/jds")
@@ -218,12 +220,11 @@ def list_jds():
 
 
 @app.post("/api/jds")
-async def create_jd(payload: dict):
+def create_jd(payload: dict):
     name = (payload.get("name") or "").strip()
     content = (payload.get("content") or "").strip()
     if not name or not content:
         raise HTTPException(status_code=400, detail="岗位名称和内容不能为空")
-    jds = _load_jds()
     jd = {
         "id": "jd_" + uuid.uuid4().hex[:12],
         "name": name,
@@ -231,30 +232,43 @@ async def create_jd(payload: dict):
         "createdAt": _now(),
         "updatedAt": _now(),
     }
-    jds.append(jd)
-    _save_jds(jds)
+    with _jd_lock:
+        jds = _load_jds()
+        jds.append(jd)
+        _save_jds(jds)
     return {"jd": jd}
 
 
 @app.put("/api/jds/{jd_id}")
-async def update_jd(jd_id: str, payload: dict):
-    jds = _load_jds()
-    jd = next((j for j in jds if j.get("id") == jd_id), None)
-    if jd is None:
-        raise HTTPException(status_code=404, detail="JD 不存在")
-    if "name" in payload:
-        jd["name"] = (payload.get("name") or "").strip()
-    if "content" in payload:
-        jd["content"] = (payload.get("content") or "").strip()
-    jd["updatedAt"] = _now()
-    _save_jds(jds)
+def update_jd(jd_id: str, payload: dict):
+    new_name = (payload.get("name") or "").strip()
+    new_content = (payload.get("content") or "").strip()
+    if "name" in payload and not new_name:
+        raise HTTPException(status_code=400, detail="岗位名称不能为空")
+    if "content" in payload and not new_content:
+        raise HTTPException(status_code=400, detail="JD 内容不能为空")
+    with _jd_lock:
+        jds = _load_jds()
+        jd = next((j for j in jds if j.get("id") == jd_id), None)
+        if jd is None:
+            raise HTTPException(status_code=404, detail="JD 不存在")
+        if "name" in payload:
+            jd["name"] = new_name
+        if "content" in payload:
+            jd["content"] = new_content
+        jd["updatedAt"] = _now()
+        _save_jds(jds)
     return {"jd": jd}
 
 
 @app.delete("/api/jds/{jd_id}")
-async def delete_jd(jd_id: str):
-    _save_jds([j for j in _load_jds() if j.get("id") != jd_id])
-    return {"ok": True}
+def delete_jd(jd_id: str):
+    with _jd_lock:
+        jds = _load_jds()
+        new_jds = [j for j in jds if j.get("id") != jd_id]
+        deleted = len(new_jds) != len(jds)
+        _save_jds(new_jds)
+    return {"ok": True, "deleted": deleted}
 
 
 # 静态托管前端（在所有 API 路由之后、启动之前注册；html=True 让 / 返回 index.html）
