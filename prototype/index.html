@@ -4,113 +4,157 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI 简历教练</title>
+<!-- 手绘风：Ma Shan Zheng 楷书手写字体（中文手写感，Gloria Hallelujah 不含中文） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<!-- wired-elements 手绘组件（锁定 rc.6，jsDelivr +esm 全组件注册；未用 calendar 无需单独引） -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/wired-elements@3.0.0-rc.6/+esm"></script>
 <style>
   :root {
-    --bg: #f4f5f8;
-    --card: #ffffff;
-    --line: #e5e7ee;
-    --text: #1a1d27;
-    --text2: #5b6172;
-    --text3: #9aa0b0;
-    --primary: #3f5efb;
-    --primary-weak: #eef1ff;
-    --green: #16a34a;
-    --green-weak: #e9f9ef;
-    --red: #dc2626;
-    --red-weak: #fdeeee;
-    --amber: #d97706;
-    --amber-weak: #fef5e7;
-    --radius: 14px;
-    --shadow: 0 1px 3px rgba(20,24,40,.06), 0 6px 20px rgba(20,24,40,.05);
+    --bg: #fffdf7;
+    --card: #fffefa;
+    --line: #d8d2be;
+    --text: #2b2a26;
+    --text2: #6b6656;
+    --text3: #a09a86;
+    --primary: #d23f31;
+    --primary-weak: #fdeee9;
+    --green: #4a8c3f;
+    --green-weak: #edf6e8;
+    --red: #c0392b;
+    --red-weak: #fdecea;
+    --amber: #c07a1d;
+    --amber-weak: #fdf3e2;
+    --ink: #2b2a26;
+    --paper: #fffdf7;
+    --accent: #d23f31;
+    --marker: #ffe9a0;
+    --line-soft: #c9c2ae;
+    --radius: 4px;
+    --shadow: none;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
-    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6;
+    /* 手绘风：手写体 + 点阵草稿纸背景 */
+    font-family: 'Ma Shan Zheng', "PingFang SC", "Microsoft YaHei", cursive, sans-serif;
+    background: var(--paper);
+    background-image: radial-gradient(#e8e4d4 1px, transparent 1px);
+    background-size: 26px 26px;
+    color: var(--text); font-size: 14px; line-height: 1.6;
   }
+  /* wired 手绘组件线条统一墨色；primary 按钮单独蜡笔红 */
+  wired-button { color: var(--ink); font-size: 14px; }
+  wired-button.primary { color: var(--accent); }
+  wired-textarea { width: 100%; color: var(--ink); }
   .hidden { display: none !important; }
   button { font-family: inherit; cursor: pointer; border: none; }
   input, textarea { font-family: inherit; }
 
   #login-view {
     min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #1b2450 0%, #3f5efb 100%);
+    /* 蜡笔斜纹纸背景替代原渐变 */
+    background: repeating-linear-gradient(45deg, #fdf8ec 0 22px, #f7efdd 22px 44px);
   }
   .login-card {
-    background: #fff; border-radius: 18px; padding: 40px 36px; width: 380px;
-    box-shadow: 0 20px 60px rgba(10,15,40,.35);
+    background: var(--card); border: 2px solid var(--ink);
+    /* 手抖圆角：四角半径故意不一致 */
+    border-radius: 18px 12px 20px 10px;
+    padding: 40px 36px; width: 380px;
+    box-shadow: 6px 7px 0 rgba(43,42,38,.18);
   }
   .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .login-logo .mark { width: 40px; height: 40px; border-radius: 11px; background: linear-gradient(135deg,#3f5efb,#7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .login-logo h1 { font-size: 19px; }
+  .login-logo .mark { width: 42px; height: 42px; border: 2px solid var(--ink); border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; display: flex; align-items: center; justify-content: center; font-size: 20px; background: var(--marker); }
+  .login-logo h1 { font-size: 22px; font-weight: normal; }
   .login-sub { color: var(--text3); font-size: 13px; margin-bottom: 26px; }
   .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
-  .field input { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; font-size: 14px; outline: none; transition: .15s; }
-  .field input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
+  .field input { width: 100%; height: 44px; border: 2px solid var(--ink); border-radius: 12px 8px 14px 9px; padding: 0 14px; font-size: 14px; outline: none; transition: .15s; background: #fff; }
+  .field input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 rgba(210,63,49,.25); }
   .btn { height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 18px; transition: .15s; }
   .btn-primary { background: var(--primary); color: #fff; }
-  .btn-primary:hover { background: #2f4be0; }
-  .btn-primary:disabled { background: #aab4f7; cursor: not-allowed; }
+  .btn-primary:hover { background: #b93528; }
+  .btn-primary:disabled { background: #e5a79f; cursor: not-allowed; }
   .btn-block { width: 100%; }
-  .btn-ghost { background: #fff; color: var(--text2); border: 1px solid var(--line); }
-  .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-ghost { background: #fff; color: var(--text2); border: 2px solid var(--ink); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
   .login-foot { margin-top: 18px; text-align: center; color: var(--text3); font-size: 12px; }
 
   #app { display: flex; min-height: 100vh; }
-  .sidebar { width: 220px; background: #1b2450; color: #c7cce0; flex-shrink: 0; display: flex; flex-direction: column; padding: 20px 14px; }
-  .side-logo { display: flex; align-items: center; gap: 9px; color: #fff; margin-bottom: 26px; padding: 0 8px; }
-  .side-logo .mark { width: 32px; height: 32px; border-radius: 9px; background: linear-gradient(135deg,#3f5efb,#7c3aed); display:flex; align-items:center; justify-content:center; font-size:16px; }
-  .side-logo b { font-size: 15px; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 9px; color: #c7cce0; font-size: 14px; cursor: pointer; margin-bottom: 4px; transition: .15s; }
-  .nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
-  .nav-item.active { background: rgba(63,94,251,.28); color: #fff; font-weight: 600; }
+  .sidebar {
+    width: 220px; background: #fbf6e8; color: var(--text2); flex-shrink: 0;
+    display: flex; flex-direction: column; padding: 20px 14px;
+    border-right: 2px dashed var(--line-soft);
+  }
+  .side-logo { display: flex; align-items: center; gap: 9px; color: var(--ink); margin-bottom: 26px; padding: 0 8px; }
+  .side-logo .mark { width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; background: var(--marker); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .side-logo b { font-size: 16px; font-weight: normal; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 11px 12px;
+    border-radius: 10px 14px 9px 13px; color: var(--text2); font-size: 15px;
+    cursor: pointer; margin-bottom: 4px; transition: .15s;
+  }
+  .nav-item:hover { background: #f3eedd; color: var(--ink); }
+  .nav-item.active {
+    /* 荧光笔划重点 */
+    background: linear-gradient(104deg, transparent 1%, var(--marker) 4%, var(--marker) 96%, transparent 99%);
+    color: var(--ink); font-weight: 600;
+  }
   .nav-item .ico { font-size: 16px; width: 20px; text-align: center; }
-  .side-foot { margin-top: auto; padding: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .side-foot { margin-top: auto; padding: 12px; border-top: 1.5px dashed var(--line-soft); }
   .user-row { display: flex; align-items: center; gap: 10px; }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
-  .user-meta b { color: #fff; font-size: 13px; display:block; }
-  .user-meta span { color: #8b92ad; font-size: 11px; }
+  .avatar {
+    width: 36px; height: 36px; border: 2px solid var(--ink);
+    border-radius: 47% 53% 50% 48% / 52% 48% 55% 45%;
+    background: var(--marker); color: var(--ink);
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+  }
+  .user-meta b { color: var(--ink); font-size: 14px; font-weight: normal; display:block; }
+  .user-meta span { color: var(--text3); font-size: 11px; }
 
   .main { flex: 1; padding: 28px 36px; overflow-y: auto; max-height: 100vh; }
-  .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .page-title { font-size: 22px; font-weight: normal; margin-bottom: 2px; }
   .page-desc { color: var(--text3); font-size: 13px; margin-bottom: 22px; }
 
-  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 24px; }
+  .card { background: var(--card); border: 1.5px solid var(--ink); border-radius: 14px 9px 16px 8px; padding: 24px; }
   .card + .card { margin-top: 16px; }
-  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+  .card-title { font-size: 16px; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
 
-  .upload-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; transition: .15s; color: var(--text2); }
-  .upload-zone:hover { border-color: var(--primary); background: var(--primary-weak); }
+  .upload-zone { border: 2.5px dashed var(--line-soft); border-radius: 16px 12px 18px 10px; padding: 36px 20px; text-align: center; cursor: pointer; transition: .15s; color: var(--text2); }
+  .upload-zone:hover { border-color: var(--accent); background: #fdf6ee; }
   .upload-zone .up-ico { font-size: 30px; margin-bottom: 8px; }
-  .upload-zone b { color: var(--primary); }
+  .upload-zone b { color: var(--accent); font-weight: normal; }
   .upload-zone .hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
-  .file-chip { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 14px; background: var(--primary-weak); border-radius: 9px; color: var(--primary); font-size: 13px; }
-  textarea.jd { width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 13px; outline: none; resize: vertical; }
-  textarea.jd:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
-  .actions { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 8px 14px;
+    background: var(--marker); border: 1.5px solid var(--ink);
+    border-radius: 12px 8px 14px 9px; color: var(--ink); font-size: 13px;
+  }
+  textarea.jd { width: 100%; min-height: 110px; border: 2px solid var(--ink); border-radius: 12px 8px 14px 9px; padding: 12px 14px; font-size: 13px; outline: none; resize: vertical; background: #fff; }
+  textarea.jd:focus { border-color: var(--accent); box-shadow: 3px 3px 0 rgba(210,63,49,.25); }
+  .actions { margin-top: 22px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
 
   .progress-steps { display: flex; flex-direction: column; gap: 12px; }
-  .p-step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 11px; background: #fafbfd; border: 1px solid var(--line); }
-  .p-step .dot { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size: 13px; font-weight:700; }
+  .p-step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px 8px 13px 9px; background: #fdfaf1; border: 1.5px solid var(--line-soft); }
+  .p-step .dot { width: 26px; height: 26px; border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size: 13px; }
   .p-step.done .dot { background: var(--green); color: #fff; }
-  .p-step.active .dot { background: var(--primary); color: #fff; animation: pulse 1.2s infinite; }
-  .p-step.wait .dot { background: #e6e8ef; color: var(--text3); }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(63,94,251,.4);} 50% { box-shadow: 0 0 0 7px rgba(63,94,251,0);} }
+  .p-step.active .dot { background: var(--marker); color: var(--ink); border: 2px solid var(--accent); animation: pulse 1.2s infinite; }
+  .p-step.wait .dot { background: #efe9d8; color: var(--text3); }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(210,63,49,.4);} 50% { box-shadow: 0 0 0 7px rgba(210,63,49,0);} }
   .p-step .p-name { font-weight: 600; }
   .p-step .p-desc { font-size: 12px; color: var(--text3); }
 
   /* 分步实时展示 */
   .assess-steps { display: flex; flex-direction: column; gap: 12px; }
-  .a-step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+  .a-step { background: var(--card); border: 1.5px solid var(--ink); border-radius: 13px 8px 14px 9px; overflow: hidden; }
   .a-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; }
-  .a-num { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; background: #e6e8ef; color: var(--text3); transition: .2s; }
+  .a-num { width: 26px; height: 26px; border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; background: #efe9d8; color: var(--text3); transition: .2s; }
   .a-name { font-weight: 600; }
   .a-status { margin-left: auto; font-size: 12px; color: var(--text3); }
   .a-body { padding: 0 18px 16px; display: none; }
-  .a-step.active .a-num { background: var(--primary); color: #fff; }
-  .a-step.active .a-status { color: var(--primary); }
-  .a-step.done { border-left: 3px solid var(--green); }
+  .a-step.active .a-num { background: var(--marker); color: var(--ink); border: 2px solid var(--accent); }
+  .a-step.active .a-status { color: var(--accent); }
+  .a-step.done { border-left: 4px solid var(--green); }
   .a-step.done .a-num { background: var(--green); color: #fff; }
   .a-step.done .a-status { color: var(--green); }
   .a-step.done .a-body { display: block; }
@@ -118,75 +162,75 @@
   .result-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
   .res-cand h2 { font-size: 18px; margin-bottom: 2px; }
   .res-cand .meta { color: var(--text3); font-size: 13px; }
-  .verdict { padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .verdict { padding: 8px 14px; border: 2px solid currentColor; border-radius: 14px 9px 16px 8px; font-weight: 700; font-size: 14px; white-space: nowrap; }
   .verdict.good { background: var(--green-weak); color: var(--green); }
   .verdict.bad { background: var(--red-weak); color: var(--red); }
   .verdict.mid { background: var(--amber-weak); color: var(--amber); }
 
-  .step-card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
-  .step-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; background: #fafbfd; user-select: none; }
-  .step-card-head .num { width: 24px; height: 24px; border-radius: 7px; background: var(--primary); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .step-card-head .t { font-weight: 700; }
+  .step-card { border: 1.5px solid var(--ink); border-radius: 13px 8px 14px 9px; overflow: hidden; margin-bottom: 14px; background: var(--card); }
+  .step-card-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; background: #fdfaf1; user-select: none; }
+  .step-card-head .num { width: 26px; height: 26px; border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; background: var(--marker); border: 2px solid var(--ink); color: var(--ink); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .step-card-head .t { font-weight: 600; }
   .step-card-head .arrow { margin-left: auto; color: var(--text3); transition: .2s; }
   .step-card.open .arrow { transform: rotate(180deg); }
   .step-card-body { padding: 0 18px; max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s ease; }
   .step-card.open .step-card-body { padding: 6px 18px 18px; max-height: 2000px; }
 
-  .item3 { border-left: 3px solid var(--line); padding: 10px 14px; margin: 10px 0; background: #fbfbfd; border-radius: 0 9px 9px 0; }
+  .item3 { border-left: 3px solid var(--line-soft); padding: 10px 14px; margin: 10px 0; background: #fdfaf1; border-radius: 0 10px 12px 0; }
   .item3 .q { font-weight: 600; color: var(--red); }
   .item3 .w { color: var(--amber); }
   .item3 .s { color: var(--green); }
   .item3 div + div { margin-top: 4px; }
-  .tag { display:inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; margin-right: 6px; }
+  .tag { display:inline-block; padding: 2px 8px; border: 1.5px solid currentColor; border-radius: 8px 11px 9px 12px; font-size: 12px; margin-right: 6px; }
   .tag.red { background: var(--red-weak); color: var(--red); }
   .tag.amber { background: var(--amber-weak); color: var(--amber); }
   .tag.green { background: var(--green-weak); color: var(--green); }
   .q-list li { margin: 8px 0 8px 18px; }
-  .final-box { background: #fafbfd; border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .final-box { background: #fdfaf1; border: 1.5px dashed var(--line-soft); border-radius: 12px 8px 13px 9px; padding: 16px 18px; }
   .final-box .row { display: flex; gap: 10px; margin: 8px 0; }
 
   .hist-list { display: flex; flex-direction: column; gap: 12px; }
-  .hist-item { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: .15s; }
-  .hist-item:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(20,24,40,.1); }
-  .hist-item .h-ico { width: 40px; height: 40px; border-radius: 10px; background: var(--primary-weak); color: var(--primary); display:flex; align-items:center; justify-content:center; font-size: 18px; flex-shrink:0; }
+  .hist-item { background: var(--card); border: 1.5px solid var(--ink); border-radius: 14px 9px 16px 8px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: .15s; }
+  .hist-item:hover { transform: translate(-1px, -2px); box-shadow: 4px 5px 0 rgba(43,42,38,.15); }
+  .hist-item .h-ico { width: 40px; height: 40px; border: 2px solid var(--ink); border-radius: 46% 54% 52% 48% / 55% 47% 53% 45%; background: var(--marker); color: var(--ink); display:flex; align-items:center; justify-content:center; font-size: 18px; flex-shrink:0; }
   .hist-item .h-main { flex: 1; }
-  .hist-item .h-name { font-weight: 700; font-size: 15px; }
+  .hist-item .h-name { font-weight: 600; font-size: 15px; }
   .hist-item .h-meta { color: var(--text3); font-size: 12px; margin-top: 2px; }
   .hist-item .h-time { color: var(--text3); font-size: 12px; flex-shrink: 0; }
 
-  .score-hero { display:flex; align-items:center; gap:22px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px 28px; margin-bottom:16px; }
-  .score-big { font-size:52px; font-weight:800; color:var(--primary); line-height:1; }
-  .score-big small { font-size:15px; color:var(--text3); font-weight:600; margin-left:2px; }
+  .score-hero { display:flex; align-items:center; gap:22px; background:var(--card); border: 2px solid var(--ink); border-radius:16px 10px 18px 9px; padding:24px 28px; margin-bottom:16px; }
+  .score-big { font-size:52px; color:var(--accent); line-height:1; }
+  .score-big small { font-size:15px; color:var(--text3); margin-left:2px; }
   .score-mid { flex:1; }
   .score-mid .label { color:var(--text3); font-size:13px; }
   .score-mid .verdict-line { font-size:18px; font-weight:700; margin-top:4px; }
-  .dim-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; margin-bottom:12px; }
+  .dim-card { background:var(--card); border: 1.5px solid var(--ink); border-radius:13px 8px 14px 9px; padding:18px 20px; margin-bottom:12px; }
   .dim-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-  .dim-name { font-weight:700; font-size:15px; }
-  .dim-score { font-size:22px; font-weight:800; }
+  .dim-name { font-weight:600; font-size:15px; }
+  .dim-score { font-size:22px; }
   .dim-score.good { color:var(--green); }
   .dim-score.mid { color:var(--amber); }
   .dim-score.bad { color:var(--red); }
-  .dim-bar { height:8px; border-radius:6px; background:#eef0f5; overflow:hidden; margin-bottom:10px; }
-  .dim-bar i { display:block; height:100%; border-radius:6px; }
+  .dim-bar { height:10px; border: 1.5px solid var(--ink); border-radius: 8px 12px 9px 11px; background:#fdfaf1; overflow:hidden; margin-bottom:10px; }
+  .dim-bar i { display:block; height:100%; }
   .dim-desc { color:var(--text2); font-size:13px; line-height:1.7; }
-  .sum-box { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 24px; margin-top:4px; }
-  .sum-box .t { font-weight:700; margin-bottom:10px; }
+  .sum-box { background:var(--card); border: 1.5px dashed var(--line-soft); border-radius:13px 8px 14px 9px; padding:20px 24px; margin-top:4px; }
+  .sum-box .t { font-weight:600; margin-bottom:10px; }
   .sum-box p { color:var(--text2); font-size:14px; line-height:1.8; }
-  .bind-note { display:flex; align-items:center; gap:8px; padding:12px 16px; background:var(--primary-weak); border-radius:10px; color:var(--primary); font-size:13px; margin-bottom:16px; }
+  .bind-note { display:flex; align-items:center; gap:8px; padding:12px 16px; background: var(--marker); border: 1.5px solid var(--ink); border-radius:12px 8px 14px 9px; color:var(--ink); font-size:13px; margin-bottom:16px; }
 
-  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #1a1d27; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 13px; opacity: 0; pointer-events: none; transition: .25s; max-width: 80vw; }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) rotate(-1deg); background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 14px 9px 15px 8px; box-shadow: 4px 5px 0 rgba(43,42,38,.16); padding: 10px 20px; font-size: 13px; opacity: 0; pointer-events: none; transition: .25s; max-width: 80vw; }
   .toast.show { opacity: 1; }
   .loading { text-align:center; color:var(--text3); padding: 40px 0; font-size:14px; }
 
   /* ===== JD 管理 ===== */
   .jd-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-  .jd-bar select { flex:1; min-width:200px; height:44px; border:1px solid var(--line); border-radius:10px; padding:0 12px; font-size:14px; outline:none; background:#fff; color:var(--text); }
-  .jd-bar select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-weak); }
-  .jd-preview { margin-top:14px; padding:14px 16px; background:#fafbfd; border:1px solid var(--line); border-radius:10px; max-height:420px; overflow-y:auto; }
-  .jd-preview-name { font-weight:700; margin-bottom:8px; color:var(--primary); font-size:13px; }
+  .jd-bar select { flex:1; min-width:200px; height:44px; border:2px solid var(--ink); border-radius:12px 8px 14px 9px; padding:0 12px; font-size:14px; outline:none; background:#fff; color:var(--text); }
+  .jd-bar select:focus { border-color: var(--accent); box-shadow: 3px 3px 0 rgba(210,63,49,.25); }
+  .jd-preview { margin-top:14px; padding:14px 16px; background:#fdfaf1; border:1.5px dashed var(--line-soft); border-radius:12px 8px 13px 9px; max-height:420px; overflow-y:auto; }
+  .jd-preview-name { font-weight:600; margin-bottom:8px; color:var(--accent); font-size:13px; }
   .jd-preview-content.md { color:var(--text2); font-size:13px; line-height:1.75; word-break:break-word; }
-  .jd-preview-content.md h1, .jd-preview-content.md h2, .jd-preview-content.md h3 { margin:10px 0 6px; color:var(--text); font-weight:700; }
+  .jd-preview-content.md h1, .jd-preview-content.md h2, .jd-preview-content.md h3 { margin:10px 0 6px; color:var(--text); }
   .jd-preview-content.md h1 { font-size:17px; } .jd-preview-content.md h2 { font-size:15px; } .jd-preview-content.md h3 { font-size:14px; }
   .jd-preview-content.md p { margin:4px 0; }
   .jd-preview-content.md ul, .jd-preview-content.md ol { margin:4px 0 4px 20px; }
@@ -194,24 +238,24 @@
   .jd-preview-content.md strong { color:var(--text); }
 
   .modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; }
-  .modal-mask { position:absolute; inset:0; background:rgba(10,15,40,.45); }
-  .modal-card { position:relative; background:#fff; border-radius:16px; padding:28px; width:600px; max-width:92vw; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(10,15,40,.3); }
-  .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
+  .modal-mask { position:absolute; inset:0; background:rgba(43,42,38,.4); }
+  .modal-card { position:relative; background:var(--card); border: 2px solid var(--ink); border-radius:18px 12px 20px 10px; padding:28px; width:600px; max-width:92vw; max-height:88vh; overflow-y:auto; box-shadow: 6px 7px 0 rgba(43,42,38,.2); }
+  .modal-title { font-size:19px; margin-bottom:20px; }
   .jd-upload-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
 
   /* ===== 打印/导出 PDF ===== */
   @media print {
     /* 只留当前页面的正文卡片：隐藏侧边栏、按钮、交互元素 */
     .sidebar, .btn, .toast, .modal, .jd-bar, .bind-note, .step-card-head .arrow, .file-chip { display: none !important; }
-    body { background: #fff; }
+    body { background: #fff; background-image: none; }
     .main { padding: 0; max-height: none; overflow: visible; }
     .page-title { font-size: 20px; }
     .card, .step-card, .final-box, .dim-card, .sum-box, .res-cand {
-      box-shadow: none !important; border: 1px solid #d8dce6; break-inside: avoid;
+      box-shadow: none !important; border: 1px solid #c9c2ae; border-radius: 6px !important; break-inside: avoid;
     }
     /* 打印时强制展开所有折叠卡片（toggleStep 用 .open 控制 max-height） */
     .step-card .step-card-body { max-height: none !important; overflow: visible !important; padding: 6px 18px 18px !important; }
-    .step-card-head { background: #f5f6fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step-card-head { background: #f5f2e6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .verdict, .tag, .dim-score, .item3 .q, .item3 .w, .item3 .s { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     /* 按钮容器：按钮已隐藏，去掉残留间距 */
     .actions { display: none !important; }
@@ -228,7 +272,8 @@
     <div class="login-sub">招聘方视角 · 两段式评估（简历 + 面试）</div>
     <div class="field"><label>账号</label><input id="login-user" type="text" value="hr_zhang" placeholder="请输入账号"></div>
     <div class="field"><label>密码</label><input id="login-pass" type="password" value="123456" placeholder="请输入密码"></div>
-    <button class="btn btn-primary btn-block" onclick="doLogin()">登 录</button>
+    <button class="btn btn-primary btn-block hidden" onclick="doLogin()" aria-hidden="true" tabindex="-1"></button>
+    <wired-button class="primary" elevation="2" id="login-btn" style="width:100%; --wired-button-size:44px">登 录</wired-button>
     <div class="login-foot">仅限 AI 中心内部使用</div>
   </div>
 </div>
@@ -268,15 +313,16 @@
           <select id="jd-select" onchange="onJdChange()">
             <option value="">不使用 JD</option>
           </select>
-          <button class="btn btn-ghost" onclick="openJdModal()">＋ 新增 JD</button>
-          <button class="btn btn-ghost" id="btn-jd-edit" onclick="editJd()" disabled>✎ 编辑</button>
-          <button class="btn btn-ghost" id="btn-jd-del" onclick="delJd()" disabled>🗑 删除</button>
+          <wired-button elevation="1" onclick="openJdModal()">＋ 新增 JD</wired-button>
+          <wired-button elevation="1" id="btn-jd-edit-wired" onclick="editJd()">✎ 编辑</wired-button>
+          <wired-button elevation="1" id="btn-jd-del-wired" onclick="delJd()">🗑 删除</wired-button>
         </div>
         <div id="jd-preview" class="jd-preview hidden"></div>
       </div>
       <div class="actions">
-        <button class="btn btn-primary" id="btn-assess" onclick="startAssess()">开始评估</button>
-        <button class="btn btn-ghost" onclick="clearAll()">清空</button>
+        <wired-button class="primary" elevation="2" id="btn-assess-wired">开始评估 →</wired-button>
+        <wired-button elevation="1" id="btn-clear-wired">清空</wired-button>
+        <button class="btn btn-primary hidden" id="btn-assess" onclick="startAssess()" aria-hidden="true" tabindex="-1"></button>
       </div>
     </div>
 
@@ -309,9 +355,9 @@
       <div class="result-head" id="result-head"></div>
       <div id="result-body"></div>
       <div class="actions">
-        <button class="btn btn-primary" onclick="goPage('interview-upload')">→ 进入面试评分（第二步）</button>
-        <button class="btn btn-ghost" onclick="window.print()">⬇ 导出 / 打印</button>
-        <button class="btn btn-ghost" onclick="goPage('new')">重新评估</button>
+        <wired-button class="primary" elevation="2" onclick="goPage('interview-upload')">→ 进入面试评分（第二步）</wired-button>
+        <wired-button elevation="1" onclick="window.print()">⬇ 导出 / 打印</wired-button>
+        <wired-button elevation="1" onclick="goPage('new')">重新评估</wired-button>
       </div>
     </div>
 
@@ -325,8 +371,9 @@
         <textarea class="jd" id="interview-text" style="min-height:220px" placeholder="粘贴面试官 ↔ 面试者的对话记录（或整场面试要点）……"></textarea>
       </div>
       <div class="actions">
-        <button class="btn btn-primary" id="btn-score" onclick="startScore()">开始评分</button>
-        <button class="btn btn-ghost" onclick="goPage('result')">← 返回评估结果</button>
+        <wired-button class="primary" elevation="2" id="btn-score-wired">开始评分</wired-button>
+        <wired-button elevation="1" onclick="goPage('result')">← 返回评估结果</wired-button>
+        <button class="btn btn-primary hidden" id="btn-score" onclick="startScore()" aria-hidden="true" tabindex="-1"></button>
       </div>
     </div>
 
@@ -336,8 +383,8 @@
       <div class="page-desc" id="score-meta"></div>
       <div id="score-body"></div>
       <div class="actions" style="margin-top:16px">
-        <button class="btn btn-primary" onclick="window.print()">⬇ 导出 / 打印</button>
-        <button class="btn btn-ghost" onclick="goPage('result')">← 返回评估结果</button>
+        <wired-button class="primary" elevation="2" onclick="window.print()">⬇ 导出 / 打印</wired-button>
+        <wired-button elevation="1" onclick="goPage('result')">← 返回评估结果</wired-button>
       </div>
     </div>
 
@@ -364,15 +411,15 @@
     <div class="field">
       <label>JD 内容</label>
       <div class="jd-upload-row">
-        <button class="btn btn-ghost" onclick="document.getElementById('jd-file-input').click()">📎 上传文件（txt/md/pdf）</button>
+        <wired-button elevation="1" onclick="document.getElementById('jd-file-input').click()">📎 上传文件（txt/md/pdf）</wired-button>
         <input type="file" id="jd-file-input" class="hidden" accept=".pdf,.txt,.md,.text" onchange="jdFileChosen(this)">
         <span id="jd-file-name" style="color:var(--text3);font-size:12px"></span>
       </div>
       <textarea class="jd" id="jd-content" placeholder="或直接在此粘贴 JD 内容…"></textarea>
     </div>
     <div class="actions" style="margin-top:8px">
-      <button class="btn btn-primary" onclick="saveJd()">保存</button>
-      <button class="btn btn-ghost" onclick="closeJdModal()">取消</button>
+      <wired-button class="primary" elevation="2" onclick="saveJd()">保存</wired-button>
+      <wired-button elevation="1" onclick="closeJdModal()">取消</wired-button>
     </div>
   </div>
 </div>
@@ -788,18 +835,18 @@
   function updateJdPreview() {
     const jd = getSelectedJd();
     const preview = $('#jd-preview');
-    const editBtn = $('#btn-jd-edit');
-    const delBtn = $('#btn-jd-del');
+    const editBtn = $('#btn-jd-edit-wired');
+    const delBtn = $('#btn-jd-del-wired');
     if (jd) {
       preview.classList.remove('hidden');
       preview.innerHTML = `<div class="jd-preview-name">📌 ${esc(jd.name)}</div><div class="jd-preview-content md">${renderMarkdown(jd.content)}</div>`;
-      editBtn.disabled = false;
-      delBtn.disabled = false;
+      editBtn.style.opacity = '1';
+      delBtn.style.opacity = '1';
     } else {
       preview.classList.add('hidden');
       preview.innerHTML = '';
-      editBtn.disabled = true;
-      delBtn.disabled = true;
+      editBtn.style.opacity = '.45';
+      delBtn.style.opacity = '.45';
     }
   }
 
@@ -952,6 +999,29 @@
     return html;
   }
   function toggleStep(el) { el.classList.toggle('open'); }
+
+  // ---------- wired 组件接线（手绘按钮 → 原有逻辑，保留隐藏原生按钮以复用 disabled 流程） ----------
+  (function wireUp() {
+    const bridge = (wiredId, action) => {
+      const el = document.getElementById(wiredId);
+      if (el) el.addEventListener('click', action);
+    };
+    bridge('login-btn', () => doLogin());
+    bridge('btn-assess-wired', () => startAssess());
+    bridge('btn-clear-wired', () => clearAll());
+    bridge('btn-score-wired', () => startScore());
+
+    // wired 按钮没有 disabled 属性联动：评估/评分进行中用降透明度表现繁忙态
+    ['btn-assess', 'btn-score'].forEach(id => {
+      const native = document.getElementById(id);
+      if (!native) return;
+      const wiredId = id + '-wired';
+      new MutationObserver(() => {
+        const w = document.getElementById(wiredId);
+        if (w) w.style.opacity = native.disabled ? '.45' : '1';
+      }).observe(native, { attributes: true, attributeFilter: ['disabled'] });
+    });
+  })();
 
   // ---------- E2E 测试种子：URL 带 #print-verify 时自动注入模拟数据并进入结果页 ----------
   // 用途：无头浏览器打印验证（print-verify.html / Ctrl+P 冒烟）。正常使用不带 hash，零影响。
