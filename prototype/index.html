@@ -560,6 +560,7 @@
     const fileInput = $('#file-input');
     if (!fileInput.files || !fileInput.files[0]) { toast('请先上传简历文件'); return; }
     const btn = $('#btn-assess');
+    if (btn.disabled) return; // wired 桥接后按钮仍可点，防重复触发第二条评估流
     btn.disabled = true;
     state.resumeName = fileInput.files[0].name;
     await loadJds();
@@ -691,6 +692,7 @@
     if (!interviewText.trim()) { toast('请先粘贴面试记录'); return; }
     if (!state.assessResult) { toast('请先完成第一步简历评估'); return; }
     const btn = $('#btn-score');
+    if (btn.disabled) return; // 防重复触发评分
     btn.disabled = true;
     toast('正在评分中，请稍候……');
 
