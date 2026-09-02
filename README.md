@@ -102,3 +102,18 @@ python app.py
 - 图片简历（jpg/png）暂不支持直接 OCR，请先转成 PDF（文字版）再上传。
 - 4 步评估为串行调用，耗时约 1–3 分钟，属正常。
 - 简历属敏感数据，仅本机内部使用，数据不出域。
+
+## 八、开发与测试
+
+**E2E 打印验证种子**：URL 带 `#print-verify` hash 时，页面自动注入模拟评估数据并进入结果页（第 2 张卡片故意保持折叠），用于无头浏览器验证 `@media print` 样式，正常使用零影响：
+
+```bash
+# 启动后端后，用无头 Chrome 打印验证（print 媒体原生渲染）
+chrome --headless=new --no-pdf-header-footer \
+  --print-to-pdf=out.pdf --virtual-time-budget=6000 \
+  "http://127.0.0.1:8000/index.html#print-verify"
+```
+
+判定要点：PDF 中应含全部 4 步内容（含被折叠的 Step2「业绩数据」——证明打印时强制展开）；不应含侧边栏用户名与按钮文字。
+
+**历史数据迁移**：Step5→Step4 重编号前的旧评估记录，页面加载时自动将 `step5` 键归一化为 `step4`（`migrateHistory()`），并在渲染层对旧键名做兜底。
