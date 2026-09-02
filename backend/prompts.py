@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """AI 简历教练 —— 所有 prompt 定义（面向招聘方视角）。
 
-第一步：4 步简历评估（Step1/2/3/5）
+第一步：4 步简历评估（Step1/2/3/4）
 第二步：5 维度面试评分
 """
 
@@ -51,7 +51,7 @@ STEP3_SYSTEM = ROLE + "\n\n" + PRINCIPLES + (
     '{"weaknesses": ["致命弱点1", "致命弱点2"], "questions": ["追问1", "追问2", "追问3"]}'
 )
 
-STEP5_SYSTEM = ROLE + "\n\n" + PRINCIPLES + (
+STEP4_SYSTEM = ROLE + "\n\n" + PRINCIPLES + (
     "\n\n现在执行【最终裁决】。基于全部审计结果：\n"
     "1. 整体评价：对比「简历呈现」与「评估推断」，给出综合评价（强/中/弱）。\n"
     "2. 核心风险点：再次强调最致命问题及原因。\n"

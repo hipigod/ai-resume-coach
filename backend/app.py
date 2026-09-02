@@ -30,7 +30,7 @@ from prompts import (
     STEP1_SYSTEM,
     STEP2_SYSTEM,
     STEP3_SYSTEM,
-    STEP5_SYSTEM,
+    STEP4_SYSTEM,
     assess_user,
     score_user,
 )
@@ -148,10 +148,10 @@ def run_assess(resume_text: str, jd_text: str) -> dict:
     s3 = parse_json(call_deepseek(STEP3_SYSTEM, s3_user))
 
     prev = {"step1": s1, "step2": s2, "step3": s3}
-    s5_user = assess_user(resume_text, jd_text) + f"\n\n<previous_results>{json.dumps(prev, ensure_ascii=False)}</previous_results>"
-    s5 = parse_json(call_deepseek(STEP5_SYSTEM, s5_user))
+    s4_user = assess_user(resume_text, jd_text) + f"\n\n<previous_results>{json.dumps(prev, ensure_ascii=False)}</previous_results>"
+    s4 = parse_json(call_deepseek(STEP4_SYSTEM, s4_user))
 
-    return {"step1": s1, "step2": s2, "step3": s3, "step5": s5}
+    return {"step1": s1, "step2": s2, "step3": s3, "step4": s4}
 
 
 def run_score(resume_review: dict, interview_text: str, jd_text: str) -> dict:
@@ -206,13 +206,13 @@ async def assess_stream(file: UploadFile = File(...), jd: str = Form("")):
             yield _sse({"step": "step3", "result": s3})
 
             prev = {"step1": s1, "step2": s2, "step3": s3}
-            s5_user = assess_user(resume_text, jd) + f"\n\n<previous_results>{json.dumps(prev, ensure_ascii=False)}</previous_results>"
-            s5 = await asyncio.to_thread(
-                lambda: parse_json(call_deepseek(STEP5_SYSTEM, s5_user))
+            s4_user = assess_user(resume_text, jd) + f"\n\n<previous_results>{json.dumps(prev, ensure_ascii=False)}</previous_results>"
+            s4 = await asyncio.to_thread(
+                lambda: parse_json(call_deepseek(STEP4_SYSTEM, s4_user))
             )
-            yield _sse({"step": "step5", "result": s5})
+            yield _sse({"step": "step4", "result": s4})
 
-            full = {"step1": s1, "step2": s2, "step3": s3, "step5": s5}
+            full = {"step1": s1, "step2": s2, "step3": s3, "step4": s4}
             yield _sse({"done": True, "result": full})
         except HTTPException:
             yield _sse({"error": "评估失败"})

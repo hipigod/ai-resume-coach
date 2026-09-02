@@ -278,8 +278,8 @@
           <div class="a-head"><span class="a-num">3</span><span class="a-name">致命弱点 + 追问清单</span><span class="a-status">等待中</span></div>
           <div class="a-body"></div>
         </div>
-        <div class="a-step wait" id="a-step-5">
-          <div class="a-head"><span class="a-num">5</span><span class="a-name">最终裁决</span><span class="a-status">等待中</span></div>
+        <div class="a-step wait" id="a-step-4">
+          <div class="a-head"><span class="a-num">4</span><span class="a-name">最终裁决</span><span class="a-status">等待中</span></div>
           <div class="a-body"></div>
         </div>
       </div>
@@ -374,6 +374,21 @@
     try { const v = lsGet(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
   }
 
+  // 历史数据迁移：Step5→Step4 重编号前保存的评估记录，键名是 step5，统一归一化为 step4
+  function migrateHistory() {
+    let migrated = false;
+    const list = lsGetJSON('resume_coach_history', []);
+    list.forEach(it => {
+      if (it.assess && it.assess.step5 && !it.assess.step4) {
+        it.assess.step4 = it.assess.step5;
+        delete it.assess.step5;
+        migrated = true;
+      }
+    });
+    if (migrated) lsSet('resume_coach_history', JSON.stringify(list));
+  }
+  migrateHistory();
+
   const state = {
     resumeName: '',
     jdText: '',
@@ -426,7 +441,7 @@
 
   // ---------- 分步实时展示 ----------
   function initAssessSteps() {
-    [1, 2, 3, 5].forEach(n => {
+    [1, 2, 3, 4].forEach(n => {
       const el = $('#a-step-' + n);
       if (!el) return;
       el.className = 'a-step wait';
@@ -463,7 +478,7 @@
           <div class="row" style="margin-top:10px"><span class="tag amber">约面追问清单</span></div>
           <ul class="q-list">${(data.questions || []).map(q => `<li>${esc(q)}</li>`).join('') || '<li>无</li>'}</ul>
         </div>`;
-    } else if (n === 5) {
+    } else if (n === 4) {
       body.innerHTML = `
         <div class="final-box">
           <div class="row"><span class="tag green">整体评价</span><span>${esc(data.overall || '-')}</span></div>
@@ -502,7 +517,7 @@
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      const nextMap = { 1: 2, 2: 3, 3: 5, 5: null };
+      const nextMap = { 1: 2, 2: 3, 3: 4, 4: null };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -517,7 +532,7 @@
           if (payload.error) throw new Error(payload.error);
           if (payload.done) {
             state.assessResult = payload.result;
-            renderStepStatus(5, 'done');
+            renderStepStatus(4, 'done');
             saveHistory();
             setTimeout(() => { goPage('result'); renderResult(payload.result); }, 600);
             break;
@@ -546,6 +561,8 @@
   }
 
   function renderResult(r) {
+    r = r || {};
+    r.step4 = r.step4 || r.step5 || { overall: '-', risks: [], action: '-', action_reason: '（数据缺失）' }; // 兼容旧键名 + 空值兜底
     const head = $('#result-head');
     const verdict = r.step1.verdict || '待定';
     head.innerHTML = `
@@ -564,7 +581,7 @@
 
     const weaknesses = (r.step3.weaknesses || []).map(w => `<li>${esc(w)}</li>`).join('');
     const questions = (r.step3.questions || []).map(q => `<li>${esc(q)}</li>`).join('');
-    const risks = (r.step5.risks || []).map(x => `<li>${esc(x)}</li>`).join('');
+    const risks = (r.step4.risks || []).map(x => `<li>${esc(x)}</li>`).join('');
 
     $('#result-body').innerHTML = `
       <div class="step-card open" onclick="toggleStep(this)">
@@ -590,13 +607,13 @@
         </div>
       </div>
       <div class="step-card open" onclick="toggleStep(this)">
-        <div class="step-card-head"><div class="num">5</div><div class="t">最终裁决</div><div class="arrow">▾</div></div>
+        <div class="step-card-head"><div class="num">4</div><div class="t">最终裁决</div><div class="arrow">▾</div></div>
         <div class="step-card-body">
           <div class="final-box">
-            <div class="row"><span class="tag green">整体评价</span><span>${esc(r.step5.overall || '-')}</span></div>
+            <div class="row"><span class="tag green">整体评价</span><span>${esc(r.step4.overall || '-')}</span></div>
             <div class="row"><span class="tag red">核心风险</span></div>
             <ul class="q-list">${risks || '<li>无</li>'}</ul>
-            <div class="row"><span class="tag amber">行动建议</span><span><b>${esc(r.step5.action || '-')}</b>：${esc(r.step5.action_reason || '')}</span></div>
+            <div class="row"><span class="tag amber">行动建议</span><span><b>${esc(r.step4.action || '-')}</b>：${esc(r.step4.action_reason || '')}</span></div>
           </div>
         </div>
       </div>`;
