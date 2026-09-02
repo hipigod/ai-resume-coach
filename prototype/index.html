@@ -273,7 +273,7 @@
     <div class="field"><label>账号</label><input id="login-user" type="text" value="hr_zhang" placeholder="请输入账号"></div>
     <div class="field"><label>密码</label><input id="login-pass" type="password" value="123456" placeholder="请输入密码"></div>
     <button class="btn btn-primary btn-block hidden" onclick="doLogin()" aria-hidden="true" tabindex="-1"></button>
-    <wired-button class="primary" elevation="2" id="login-btn" style="width:100%; --wired-button-size:44px">登 录</wired-button>
+    <wired-button class="primary" elevation="2" id="login-btn" style="display:block; width:100%; height:46px">登 录</wired-button>
     <div class="login-foot">仅限 AI 中心内部使用</div>
   </div>
 </div>
@@ -1021,6 +1021,26 @@
         if (w) w.style.opacity = native.disabled ? '.45' : '1';
       }).observe(native, { attributes: true, attributeFilter: ['disabled'] });
     });
+
+    // 登录按钮撑满整行：wired-button 手绘框量的是内部 button 矩形，
+    // host 拉宽不会跟随——注入 shadowRoot 宽度样式后调 wiredRender() 重画
+    // （时序：必须等 .wired-rendered 出现，shadowRoot 内 svg 才就绪）
+    const stretch = (el) => {
+      let tries = 0;
+      const timer = setInterval(() => {
+        tries += 1;
+        if (el.shadowRoot && el.classList.contains('wired-rendered')) {
+          clearInterval(timer);
+          const st = document.createElement('style');
+          st.textContent = 'button{width:100%;box-sizing:border-box}';
+          el.shadowRoot.appendChild(st);
+          if (typeof el.wiredRender === 'function') el.wiredRender();
+        } else if (tries > 50) {
+          clearInterval(timer);
+        }
+      }, 100);
+    };
+    stretch(document.getElementById('login-btn'));
   })();
 
   // ---------- E2E 测试种子：URL 带 #print-verify 时自动注入模拟数据并进入结果页 ----------
