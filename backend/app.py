@@ -347,4 +347,6 @@ if __name__ == "__main__":
         pass
     if not DEEPSEEK_API_KEY:
         print("[提示] 未设置 DEEPSEEK_API_KEY，请先 export DEEPSEEK_API_KEY=sk-xxx 或写入 .env 文件。")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # 云端部署：监听平台注入的 PORT 并绑定 0.0.0.0；本地默认 8000
+    port = int(os.environ.get("PORT", "8000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
