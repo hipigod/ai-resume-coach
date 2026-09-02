@@ -952,6 +952,26 @@
     return html;
   }
   function toggleStep(el) { el.classList.toggle('open'); }
+
+  // ---------- E2E 测试种子：URL 带 #print-verify 时自动注入模拟数据并进入结果页 ----------
+  // 用途：无头浏览器打印验证（print-verify.html / Ctrl+P 冒烟）。正常使用不带 hash，零影响。
+  (function printVerifyBoot() {
+    if (location.hash !== '#print-verify') return;
+    $('#login-view').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    state.assessResult = {
+      step1: { target: '大模型算法-高级', verdict: '建议约面', reason: '项目匹配度高，但两处夸大疑点需面试验证' },
+      step2: { findings: [{ problem: '项目 A 业绩数据无出处', impact: '怀疑包装数据', verify: '追问数据口径与本人角色' }] },
+      step3: { weaknesses: ['核心项目技术深度存疑'], questions: ['请展开讲讲 QPS 优化前后对比'] },
+      step4: { overall: '中', risks: ['简历真实度需重点验证'], action: '待定', action_reason: '约面重点验证项目真实性' }
+    };
+    state.resumeName = '张三_算法工程师.pdf';
+    renderResult(state.assessResult);
+    goPage('result');
+    const cards = $$('#result-body .step-card');
+    if (cards[1]) cards[1].classList.remove('open'); // 制造折叠态，验证打印强制展开
+    document.title = 'E2E-READY ' + cards.length;
+  })();
 </script>
 </body>
 </html>
