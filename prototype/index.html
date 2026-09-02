@@ -198,6 +198,25 @@
   .modal-card { position:relative; background:#fff; border-radius:16px; padding:28px; width:600px; max-width:92vw; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(10,15,40,.3); }
   .modal-title { font-size:18px; font-weight:700; margin-bottom:20px; }
   .jd-upload-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+
+  /* ===== 打印/导出 PDF ===== */
+  @media print {
+    /* 只留当前页面的正文卡片：隐藏侧边栏、按钮、交互元素 */
+    .sidebar, .btn, .toast, .modal, .jd-bar, .bind-note, .step-card-head .arrow, .file-chip { display: none !important; }
+    body { background: #fff; }
+    .main { padding: 0; max-height: none; overflow: visible; }
+    .page-title { font-size: 20px; }
+    .card, .step-card, .final-box, .dim-card, .sum-box, .res-cand {
+      box-shadow: none !important; border: 1px solid #d8dce6; break-inside: avoid;
+    }
+    /* 打印时强制展开所有折叠卡片（toggleStep 用 .open 控制 max-height） */
+    .step-card .step-card-body { max-height: none !important; overflow: visible !important; padding: 6px 18px 18px !important; }
+    .step-card-head { background: #f5f6fa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .verdict, .tag, .dim-score, .item3 .q, .item3 .w, .item3 .s { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    /* 按钮容器：按钮已隐藏，去掉残留间距 */
+    .actions { display: none !important; }
+  }
+
 </style>
 </head>
 <body>
